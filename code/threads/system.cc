@@ -81,52 +81,52 @@ Initialize(int argc, char **argv)
     char* debugArgs = "";
     bool randomYield = FALSE;
 
-#ifdef USER_PROGRAM
-    bool debugUserProg = FALSE;	// single step user program
-#endif
-#ifdef FILESYS_NEEDED
-    bool format = FALSE;	// format disk
-#endif
-#ifdef NETWORK
-    double rely = 1;		// network reliability
-    int netname = 0;		// UNIX socket name
-#endif
+    #ifdef USER_PROGRAM
+        bool debugUserProg = FALSE;	// single step user program
+    #endif
+    #ifdef FILESYS_NEEDED
+        bool format = FALSE;	// format disk
+    #endif
+    #ifdef NETWORK
+        double rely = 1;		// network reliability
+        int netname = 0;		// UNIX socket name
+    #endif
     
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
-	argCount = 1;
-	if (!strcmp(*argv, "-d")) {
-	    if (argc == 1)
-		debugArgs = "+";	// turn on all debug flags
-	    else {
-	    	debugArgs = *(argv + 1);
-	    	argCount = 2;
-	    }
-	} else if (!strcmp(*argv, "-rs")) {
-	    ASSERT(argc > 1);
-	    RandomInit(atoi(*(argv + 1)));	// initialize pseudo-random
-						// number generator
-	    randomYield = TRUE;
-	    argCount = 2;
-	}
-#ifdef USER_PROGRAM
-	if (!strcmp(*argv, "-s"))
-	    debugUserProg = TRUE;
-#endif
-#ifdef FILESYS_NEEDED
-	if (!strcmp(*argv, "-f"))
-	    format = TRUE;
-#endif
-#ifdef NETWORK
-	if (!strcmp(*argv, "-l")) {
-	    ASSERT(argc > 1);
-	    rely = atof(*(argv + 1));
-	    argCount = 2;
-	} else if (!strcmp(*argv, "-m")) {
-	    ASSERT(argc > 1);
-	    netname = atoi(*(argv + 1));
-	    argCount = 2;
-	}
-#endif
+        argCount = 1;
+        if (!strcmp(*argv, "-d")) {// strcmp returns 0 => equal
+            if (argc == 1)
+            debugArgs = "+";	// turn on all debug flags
+            else {
+                debugArgs = *(argv + 1);
+                argCount = 2;
+            }
+        } else if (!strcmp(*argv, "-rs")) {
+            ASSERT(argc > 1);
+            RandomInit(atoi(*(argv + 1)));	// initialize pseudo-random
+                            // number generator
+            randomYield = TRUE;
+            argCount = 2;
+        }
+        #ifdef USER_PROGRAM
+            if (!strcmp(*argv, "-s"))
+                debugUserProg = TRUE;
+        #endif
+        #ifdef FILESYS_NEEDED
+            if (!strcmp(*argv, "-f"))
+                format = TRUE;
+        #endif
+        #ifdef NETWORK
+            if (!strcmp(*argv, "-l")) {
+                ASSERT(argc > 1);
+                rely = atof(*(argv + 1));
+                argCount = 2;
+            } else if (!strcmp(*argv, "-m")) {
+                ASSERT(argc > 1);
+                netname = atoi(*(argv + 1));
+                argCount = 2;
+            }
+        #endif
     }
 
     DebugInit(debugArgs);			// initialize DEBUG messages
@@ -147,21 +147,21 @@ Initialize(int argc, char **argv)
     interrupt->Enable();
     CallOnUserAbort(Cleanup);			// if user hits ctl-C
     
-#ifdef USER_PROGRAM
-    machine = new Machine(debugUserProg);	// this must come first
-#endif
+    #ifdef USER_PROGRAM
+        machine = new Machine(debugUserProg);	// this must come first
+    #endif
 
-#ifdef FILESYS
-    synchDisk = new SynchDisk("DISK");
-#endif
+    #ifdef FILESYS
+        synchDisk = new SynchDisk("DISK");
+    #endif
 
-#ifdef FILESYS_NEEDED
-    fileSystem = new FileSystem(format);
-#endif
+    #ifdef FILESYS_NEEDED
+        fileSystem = new FileSystem(format);
+    #endif
 
-#ifdef NETWORK
-    postOffice = new PostOffice(netname, rely, 10);
-#endif
+    #ifdef NETWORK
+        postOffice = new PostOffice(netname, rely, 10);
+    #endif
 }
 
 //----------------------------------------------------------------------
@@ -172,21 +172,21 @@ void
 Cleanup()
 {
     printf("\nCleaning up...\n");
-#ifdef NETWORK
-    delete postOffice;
-#endif
-    
-#ifdef USER_PROGRAM
-    delete machine;
-#endif
+    #ifdef NETWORK
+        delete postOffice;
+    #endif
+        
+    #ifdef USER_PROGRAM
+        delete machine;
+    #endif
 
-#ifdef FILESYS_NEEDED
-    delete fileSystem;
-#endif
+    #ifdef FILESYS_NEEDED
+        delete fileSystem;
+    #endif
 
-#ifdef FILESYS
-    delete synchDisk;
-#endif
+    #ifdef FILESYS
+        delete synchDisk;
+    #endif
     
     delete timer;
     delete scheduler;
