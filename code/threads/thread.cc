@@ -34,6 +34,21 @@
 
 Thread::Thread(char* threadName)
 {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);
+        ASSERT(MinAvailableTid>=0&&MinAvailableTid<ThreadsNumLimit);
+        ASSERT(TidMap[MinAvailableTid]!=true)
+        tid=MinAvailableTid;
+        uid=0;
+        TidMap[tid]=true;
+        for(int i=tid+1;i<ThreadsNumLimit;i++){
+                if(!TidMap[i])
+                        MinAvailableTid=i;
+                        break;
+        }
+        if(MinAvailableTid==tid)
+                MinAvailableTid=ThreadsNumLimit;
+        PCBList->SortedInsert(this,tid);
+    (void) interrupt->SetLevel(oldLevel);
     name = threadName;
     stackTop = NULL;
     stack = NULL;
@@ -58,6 +73,13 @@ Thread::Thread(char* threadName)
 Thread::~Thread()
 {
     DEBUG('t', "Deleting thread \"%s\"\n", name);
+
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);
+        PCBList->Remove(this);
+        ASSERT(TidMap[tid]==true);
+        TidMap[tid]=false;
+        MinAvailableTid=min(tid,MinAvailableTid);
+    (void) interrupt->SetLevel(oldLevel);
 
     ASSERT(this != currentThread);
     if (stack != NULL)
@@ -237,6 +259,14 @@ static void ThreadFinish()    { currentThread->Finish(); }
 static void InterruptEnable() { interrupt->Enable(); }
 void ThreadPrint(int arg){ Thread *t = (Thread *)arg; t->Print(); }
 
+//----------------------------------------------------------------------
+// ThreadShow
+//      Print out all the threads.Implemnted by applying ThreadPrint()
+//      to every item in the PCBlist
+//----------------------------------------------------------------------
+void ThreadShow(){
+        PCBList->Mapcar(ThreadPrint);
+}
 //----------------------------------------------------------------------
 // Thread::StackAllocate
 //	Allocate and initialize an execution stack.  The stack is

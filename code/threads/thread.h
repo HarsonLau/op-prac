@@ -55,12 +55,16 @@
 // WATCH OUT IF THIS ISN'T BIG ENOUGH!!!!!
 #define StackSize	(4 * 1024)	// in words
 
+#define ThreadsNumLimit 128             // the max num of threads
 
 // Thread state
 enum ThreadStatus { JUST_CREATED, RUNNING, READY, BLOCKED };
 
 // external function, dummy routine whose sole job is to call Thread::Print
 extern void ThreadPrint(int arg);	 
+
+// external function, whose job is to implemnt ThreadShow
+extern void ThreadShow();
 
 // The following class defines a "thread control block" -- which
 // represents a single thread of execution.
@@ -100,7 +104,9 @@ class Thread {
 						// overflowed its stack
     void setStatus(ThreadStatus st) { status = st; }
     char* getName() { return (name); }
-    void Print() { printf("%s, ", name); }
+    void Print() { printf("%s, %d ,%d\n", name,tid,uid); }
+    int getUid(){return uid;}
+    int getTid(){return tid;}
 
   private:
     // some of the private data for this class is listed above
@@ -110,6 +116,8 @@ class Thread {
 					// (If NULL, don't deallocate stack)
     ThreadStatus status;		// ready, running or blocked
     char* name;
+    int uid;                            // user id 
+    int tid;                            // thread id 
 
     void StackAllocate(VoidFunctionPtr func, void *arg);
     					// Allocate a stack for thread.

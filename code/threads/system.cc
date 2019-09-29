@@ -18,7 +18,9 @@ Interrupt *interrupt;			// interrupt status
 Statistics *stats;			// performance metrics
 Timer *timer;				// the hardware timer device,
 					// for invoking context switches
-
+bool *TidMap;                           // recording the tid usage
+int MinAvailableTid;                    // the minimum tid which is available
+List *PCBList;                          // the list of pointers to all PCBs
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
 #endif
@@ -130,6 +132,12 @@ Initialize(int argc, char **argv)
     }
 
     DebugInit(debugArgs);			// initialize DEBUG messages
+    TidMap = new bool[ThreadsNumLimit];         // initialize TidMap
+    for (int i=0;i<ThreadsNumLimit;i++)
+        TidMap[i]=false;
+
+    MinAvailableTid=0;                          // initialize MinAvailTid
+    PCBList = new List();                       // initialize PCB list
     stats = new Statistics();			// collect statistics
     interrupt = new Interrupt;			// start up interrupt handling
     scheduler = new Scheduler();		// initialize the ready queue
@@ -191,6 +199,8 @@ Cleanup()
     delete timer;
     delete scheduler;
     delete interrupt;
+    delete PCBList;
+
     
     Exit(0);
 }

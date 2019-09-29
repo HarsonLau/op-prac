@@ -47,10 +47,36 @@ ThreadTest1()
 {
     DEBUG('t', "Entering ThreadTest1");
 
-    Thread *t = new Thread("forked thread");
+        Thread *t = new Thread("forked thread");
 
-    t->Fork(SimpleThread, (void*)1);
-    SimpleThread(0);
+        t->Fork(SimpleThread, (void*)1);
+        SimpleThread(0);
+}
+
+
+//----------------------------------------------------------------------
+// ThreadTest2
+// 	create ThreadNumLimit +1 process
+//----------------------------------------------------------------------
+void ThreadTest2(){
+    DEBUG('t', "Entering ThreadTest2");
+    for(int i=0;i<=ThreadsNumLimit;i++){
+            Thread *t=new Thread("forked thread in test 2");
+            t->Print();
+    }
+}
+
+
+//----------------------------------------------------------------------
+// ThreadTest3
+// 	print out all of the threads
+//----------------------------------------------------------------------
+void ThreadTest3(){
+    DEBUG('t', "Entering ThreadTest2");
+    for (int i=0;i<ThreadsNumLimit/2;i++){
+            Thread *t =new Thread("thread");
+    }
+    ThreadShow();
 }
 
 //----------------------------------------------------------------------
@@ -62,12 +88,18 @@ void
 ThreadTest()
 {
     switch (testnum) {
-    case 1:
-	ThreadTest1();
-	break;
-    default:
-	printf("No test specified.\n");
-	break;
+        case 1:
+                ThreadTest1();
+                break;
+        case 2:
+                ThreadTest2();          //try to create ThreadNumLimit+1 threads
+                break;
+        case 3:
+                ThreadTest3();          //crate some threads then call ThreadShow
+                break;
+        default:
+                printf("No test specified.\n");
+                break;
     }
 }
 

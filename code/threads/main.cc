@@ -94,6 +94,11 @@ main(int argc, char **argv)
 			testnum = atoi(argv[1]);
 			argCount++;
 			break;
+                case 'S':
+                        if (argv[0][0]=='T'){
+                                testnum=3;
+                                break;
+                        }
 		default:
 			testnum = 1;
 			break;
