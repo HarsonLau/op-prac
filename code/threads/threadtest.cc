@@ -28,12 +28,12 @@ int testnum = 1;
 void
 SimpleThread(int which)
 {
-    int num;
-    
-    for (num = 0; num < 5; num++) {
-	printf("*** thread %d looped %d times\n", which, num);
-        currentThread->Yield();
-    }
+        int num;
+        for (num = 0; num < 5; num++) {
+                currentThread->Print(false);
+                printf("looped %d times;\n",num+1);
+                currentThread->Yield();
+        }
 }
 
 //----------------------------------------------------------------------
@@ -72,12 +72,48 @@ void ThreadTest2(){
 // 	print out all of the threads
 //----------------------------------------------------------------------
 void ThreadTest3(){
-    DEBUG('t', "Entering ThreadTest2");
+    DEBUG('t', "Entering ThreadTest3");
     for (int i=0;i<ThreadsNumLimit/2;i++){
             Thread *t =new Thread("thread");
     }
     ThreadShow();
 }
+
+//----------------------------------------------------------------------
+// ThreadTest4
+//      Test for preemptive scheduling based on priority
+//      
+//----------------------------------------------------------------------
+void ThreadTest4(){
+
+        DEBUG('t', "Entering ThreadTest4\n");
+        Thread* t1=new Thread("thread1",157);
+        t1->Print();
+        t1->Fork(SimpleThread,(void*)1);
+
+        scheduler->Print();
+
+        Thread* t2=new Thread("thread2",126);
+        t2->Print();
+        t2->Fork(SimpleThread,(void*)2);
+
+        scheduler->Print();
+
+        Thread* t3=new Thread("thread3",148);
+        t3->Print();
+        t3->Fork(SimpleThread,(void*)3);
+        scheduler->Print();
+
+        Thread* t4=new Thread("thread4",138);
+        t4->Print();
+        t4->Fork(SimpleThread,(void*)4);
+        scheduler->Print();
+
+        currentThread->Yield();
+        scheduler->Print();
+}
+
+
 
 //----------------------------------------------------------------------
 // ThreadTest
@@ -96,6 +132,9 @@ ThreadTest()
                 break;
         case 3:
                 ThreadTest3();          //crate some threads then call ThreadShow
+                break;
+        case 4:
+                ThreadTest4();
                 break;
         default:
                 printf("No test specified.\n");

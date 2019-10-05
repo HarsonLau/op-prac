@@ -1,0 +1,65 @@
+thread1 ID 1 UserID 0 Priority 157 
+
+Ready list contents:
+thread1 ID 1 UserID 0 Priority 157 
+End of Ready list content
+
+thread2 ID 2 UserID 0 Priority 126 
+thread2 ID 2 UserID 0 Priority 126 looped 1 times;
+thread2 ID 2 UserID 0 Priority 126 looped 2 times;
+thread2 ID 2 UserID 0 Priority 126 looped 3 times;
+thread2 ID 2 UserID 0 Priority 126 looped 4 times;
+thread2 ID 2 UserID 0 Priority 126 looped 5 times;
+
+Ready list contents:
+thread1 ID 1 UserID 0 Priority 157 
+End of Ready list content
+
+thread3 ID 2 UserID 0 Priority 148 
+
+Ready list contents:
+thread3 ID 2 UserID 0 Priority 148 
+thread1 ID 1 UserID 0 Priority 157 
+End of Ready list content
+
+thread4 ID 3 UserID 0 Priority 138 
+
+Ready list contents:
+thread4 ID 3 UserID 0 Priority 138 
+thread3 ID 2 UserID 0 Priority 148 
+thread1 ID 1 UserID 0 Priority 157 
+End of Ready list content
+
+
+Ready list contents:
+thread4 ID 3 UserID 0 Priority 138 
+thread3 ID 2 UserID 0 Priority 148 
+thread1 ID 1 UserID 0 Priority 157 
+End of Ready list content
+
+thread4 ID 3 UserID 0 Priority 138 looped 1 times;
+thread4 ID 3 UserID 0 Priority 138 looped 2 times;
+thread4 ID 3 UserID 0 Priority 138 looped 3 times;
+thread4 ID 3 UserID 0 Priority 138 looped 4 times;
+thread4 ID 3 UserID 0 Priority 138 looped 5 times;
+thread3 ID 2 UserID 0 Priority 148 looped 1 times;
+thread3 ID 2 UserID 0 Priority 148 looped 2 times;
+thread3 ID 2 UserID 0 Priority 148 looped 3 times;
+thread3 ID 2 UserID 0 Priority 148 looped 4 times;
+thread3 ID 2 UserID 0 Priority 148 looped 5 times;
+thread1 ID 1 UserID 0 Priority 157 looped 1 times;
+thread1 ID 1 UserID 0 Priority 157 looped 2 times;
+thread1 ID 1 UserID 0 Priority 157 looped 3 times;
+thread1 ID 1 UserID 0 Priority 157 looped 4 times;
+thread1 ID 1 UserID 0 Priority 157 looped 5 times;
+No threads ready or runnable, and no pending interrupts.
+Assuming the program completed.
+Machine halting!
+
+Ticks: total 340, idle 0, system 340, user 0
+Disk I/O: reads 0, writes 0
+Console I/O: reads 0, writes 0
+Paging: faults 0
+Network I/O: packets received 0, sent 0
+
+Cleaning up...

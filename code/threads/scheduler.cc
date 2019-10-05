@@ -46,23 +46,34 @@ Scheduler::~Scheduler()
 // Scheduler::ReadyToRun
 // 	Mark a thread as ready, but not running.
 //	Put it on the ready list, for later scheduling onto the CPU.
-//
+//      After putting it on the ready list ,check to see 
+//      if it is necessary to reschedule.If so ,force the 
+//      currentThread to yield.
 //	"thread" is the thread to be put on the ready list.
 //----------------------------------------------------------------------
 
 void
 Scheduler::ReadyToRun (Thread *thread)
 {
-    DEBUG('t', "Putting thread %s on ready list.\n", thread->getName());
+        DEBUG('t', "Putting thread %s on ready list.\n", thread->getName());
 
-    thread->setStatus(READY);
-    readyList->Append((void *)thread);
+        thread->setStatus(READY);
+        readyList->SortedInsert((void *)thread,thread->getPriority());
+
+        if(thread!=currentThread&&thread->getPriority()<currentThread->getPriority())
+                currentThread->Yield();
+
 }
 
 //----------------------------------------------------------------------
 // Scheduler::FindNextToRun
 // 	Return the next thread to be scheduled onto the CPU.
-//	If there are no ready threads, return NULL.
+//      If current thread is sleeping return the top of the list
+//      Else return a thread of which priority is higher if any
+//
+//      If current thread is sleeping ,do not check priority
+//      Else if candidate's priority is lower ,put it back ,return Null
+//      Else return the candidate
 // Side effect:
 //	Thread is removed from the ready list.
 //----------------------------------------------------------------------
@@ -70,7 +81,18 @@ Scheduler::ReadyToRun (Thread *thread)
 Thread *
 Scheduler::FindNextToRun ()
 {
-    return (Thread *)readyList->Remove();
+        if(readyList->IsEmpty())
+                return NULL;
+        Thread * candidate=(Thread *)readyList->Remove();
+        if(currentThread->getStatus()==BLOCKED)                 
+                return candidate;
+        else if(candidate->getPriority()>currentThread->getPriority())
+        {
+                readyList->SortedInsert(candidate,candidate->getPriority());
+                return NULL;
+        }
+        else
+                return candidate;
 }
 
 //----------------------------------------------------------------------
@@ -142,6 +164,7 @@ Scheduler::Run (Thread *nextThread)
 void
 Scheduler::Print()
 {
-    printf("Ready list contents:\n");
+    printf("\nReady list contents:\n");
     readyList->Mapcar((VoidFunctionPtr) ThreadPrint);
+    printf("End of Ready list content\n\n");
 }

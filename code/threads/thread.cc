@@ -32,7 +32,7 @@
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
-Thread::Thread(char* threadName)
+Thread::Thread(char* threadName,int prio=127)
 {
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
         ASSERT(MinAvailableTid>=0&&MinAvailableTid<ThreadsNumLimit);
@@ -49,6 +49,7 @@ Thread::Thread(char* threadName)
                 MinAvailableTid=ThreadsNumLimit;
         PCBList->SortedInsert(this,tid);
     (void) interrupt->SetLevel(oldLevel);
+    priority=prio;
     name = threadName;
     stackTop = NULL;
     stack = NULL;
@@ -56,6 +57,18 @@ Thread::Thread(char* threadName)
 #ifdef USER_PROGRAM
     space = NULL;
 #endif
+}
+
+//----------------------------------------------------------------------
+//     Thread::Print(bool newLine=true)
+//              Print out thread information ,if newLine is true
+//              Print a \n
+//----------------------------------------------------------------------
+
+void Thread::Print(bool newLine=true) {
+        printf("%s ID %d UserID %d Priority %d ",name,tid,uid,priority);
+        if(newLine)
+                printf("\n");
 }
 
 //----------------------------------------------------------------------
@@ -202,12 +215,10 @@ Thread::Yield ()
     ASSERT(this == currentThread);
     
     DEBUG('t', "Yielding thread \"%s\"\n", getName());
-    
-    nextThread = scheduler->FindNextToRun();
-    if (nextThread != NULL) {
         scheduler->ReadyToRun(this);
-        scheduler->Run(nextThread);
-    }
+        nextThread=scheduler->FindNextToRun();
+        if(nextThread)
+                scheduler->Run(nextThread);
     (void) interrupt->SetLevel(oldLevel);
 }
 
