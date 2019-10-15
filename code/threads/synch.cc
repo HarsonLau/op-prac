@@ -100,13 +100,89 @@ Semaphore::V()
 // Dummy functions -- so we can compile our later assignments 
 // Note -- without a correct implementation of Condition::Wait(), 
 // the test case in the network assignment won't work!
-Lock::Lock(char* debugName) {}
-Lock::~Lock() {}
-void Lock::Acquire() {}
-void Lock::Release() {}
+Lock::Lock(char* debugName) {
+        OwnerId=-1;
+        mutex=new Semaphore("BinarySemaphoreForLock",1);
+        name=debugName;
+}
+Lock::~Lock() {
+        delete mutex;
+}
+void Lock::Acquire() {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+    mutex->P();
+    OwnerId=currentThread->getTid();
+    (void) interrupt->SetLevel(oldLevel);
+}
+void Lock::Release() {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+    ASSERT(isHeldByCurrentThread());
+    OwnerId=-1;
+    mutex->V();
+    (void) interrupt->SetLevel(oldLevel);
+}
+bool Lock:: isHeldByCurrentThread(){
+        if (OwnerId==currentThread->getTid())
+                return true;
+        return false;
+}
 
-Condition::Condition(char* debugName) { }
-Condition::~Condition() { }
-void Condition::Wait(Lock* conditionLock) { ASSERT(FALSE); }
-void Condition::Signal(Lock* conditionLock) { }
-void Condition::Broadcast(Lock* conditionLock) { }
+Condition::Condition(char* debugName) { 
+        name=debugName;
+        WaitingThreads=new List;
+}
+Condition::~Condition() {
+        delete WaitingThreads;
+ }
+//	Wait() -- release the lock, relinquish the CPU until signaled, 
+//		then re-acquire the lock
+void Condition::Wait(Lock* conditionLock) {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+    conditionLock->Release();
+    WaitingThreads->Append(currentThread);
+    currentThread->Sleep();
+    conditionLock->Acquire();
+    (void) interrupt->SetLevel(oldLevel);
+
+}
+//	Signal() -- wake up a thread, if there are any waiting on 
+//		the condition
+void Condition::Signal(Lock* conditionLock) {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+    if(conditionLock->isHeldByCurrentThread()&&!WaitingThreads->IsEmpty()){
+            Thread * ToWakeUp=(Thread *)WaitingThreads->Remove();
+            scheduler->ReadyToRun(ToWakeUp); 
+    }
+    (void) interrupt->SetLevel(oldLevel);
+ }
+//	Broadcast() -- wake up all threads waiting on the condition
+void Condition::Broadcast(Lock* conditionLock) {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+    if(conditionLock->isHeldByCurrentThread()){
+            while(!WaitingThreads->IsEmpty()){
+                    scheduler->ReadyToRun((Thread *)WaitingThreads->Remove());
+            }
+    }
+    (void) interrupt->SetLevel(oldLevel);
+ }
+ Barrier::Barrier(int Total){
+         nTotal=Total;
+         nArrived=0;
+         cv=new Condition("Condition for Barrier");
+         lock =new Lock("Lock for Barrier");
+ }
+void Barrier::Wait(){
+        lock->Acquire();
+        nArrived++;
+        while (nArrived<nTotal)
+        {
+                cv->Wait(lock);
+        }
+        if(nArrived==nTotal)
+                cv->Broadcast(lock);
+        lock->Release();
+}
+Barrier::~Barrier(){
+        delete cv;
+        delete lock;
+}

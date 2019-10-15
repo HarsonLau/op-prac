@@ -79,7 +79,8 @@ class Lock {
 
   private:
     char* name;				// for debugging
-    // plus some other stuff you'll need to define
+    Semaphore* mutex;                    // Provide basic synchronizing
+    int OwnerId;                        // who have acquired the lock
 };
 
 // The following class defines a "condition variable".  A condition
@@ -131,6 +132,18 @@ class Condition {
 
   private:
     char* name;
-    // plus some other stuff you'll need to define
+    List*  WaitingThreads;
+};
+
+class Barrier {
+        public:
+                Barrier(int Total);
+                ~Barrier();
+                void Wait();
+        private:
+                int nTotal;
+                int nArrived;
+                Condition* cv;
+                Lock* lock;
 };
 #endif // SYNCH_H

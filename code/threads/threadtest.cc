@@ -12,6 +12,7 @@
 #include "copyright.h"
 #include "system.h"
 #include "elevatortest.h"
+#include "synch.h"
 
 // testnum is set in main.cc
 int testnum = 1;
@@ -113,6 +114,123 @@ void ThreadTest4(){
         scheduler->Print();
 }
 
+//----------------------------------------------------------------------
+// Reader writer problem using Semaphore
+//----------------------------------------------------------------------
+Semaphore mutex=Semaphore("mutex for reader counter",1);
+Semaphore db=Semaphore("mutex for DataBase",1);
+int ReaderCnt=0;
+void reader(int a){
+        while(1){
+                mutex.P();
+                ReaderCnt++;
+                if(ReaderCnt==1)
+                        db.P();
+                mutex.V();
+                printf("Reader %d is reading\n",currentThread->getTid());
+
+                mutex.P();
+                ReaderCnt--;
+                if(ReaderCnt==0)
+                        db.V();
+                mutex.V();
+        }
+}
+void writer(int a){
+        while(1){
+                db.P();
+                printf("writer %d is writing\n",currentThread->getTid());
+                db.V();
+        }
+}
+void ThreadTest5(){
+        DEBUG('t', "Entering ThreadTest4\n");
+        Thread* r1=new Thread("Reader 1");
+        Thread* r2=new Thread("Reader 2");
+        Thread* r3=new Thread("Reader 3");
+        Thread* r4=new Thread("Reader 4");
+        Thread* r5=new Thread("Reader 5");
+        Thread* w1=new Thread("writer 1");
+        Thread* w2=new Thread("writer 2");
+        r1->Fork(reader,(void*)1);
+        r2->Fork(reader,(void*)1);
+        r3->Fork(reader,(void*)1);
+        w1->Fork(writer,(void*)2);
+        w2->Fork(writer,(void*)2);
+        r4->Fork(reader,(void*)1);
+        r5->Fork(reader,(void*)1);
+}
+//----------------------------------------------------------------------
+// Reader writer problem using Condition
+//----------------------------------------------------------------------
+
+int ActiveWriter=0;
+int ActiveReader=0;
+int WaitingWriter=0;
+int WaitingReader=0;
+Lock CntLock=Lock("Lock for reader-writer problem");
+Condition Read=Condition("Read");
+Condition Write=Condition("Write");
+void CWriter(int a){
+        CntLock.Acquire();
+        //Whenever there is a Reader reading or waiting to read
+        // the writer shall wait
+        while(ActiveReader>0||WaitingReader>0){
+                WaitingWriter++;
+                Write.Wait(&CntLock);
+                WaitingWriter--;
+        }
+        ActiveWriter++;
+        CntLock.Release();
+        printf("Writer %d is Writing\n!");
+        CntLock.Acquire();
+        //if there is Reader waiting,wake up them all
+        if(WaitingReader>0)
+                Read.Broadcast(&CntLock);
+        //if no Reader is reading or waiting to read 
+        // Let a writer to write
+        else if (ActiveReader==0&&WaitingWriter>0){
+                Write.Signal(&CntLock);
+        }
+        CntLock.Release();
+}
+void CReader(int a){
+        CntLock.Acquire();//获取锁
+        //When there is a writer writing ,wait
+        if(ActiveWriter>0){
+                WaitingReader++;//等待计数器自增
+                Read.Wait(&CntLock);//先放弃锁，然后睡眠，然后被唤醒，获取锁
+                WaitingReader--;//等待计数器自减
+        }
+        ActiveReader++;
+        CntLock.Release();
+        printf("Reader %d is Reading\n");
+        CntLock.Acquire();
+        ActiveReader--;
+        //if there is any Reader waiting ,wake up them all
+        if(WaitingReader>0)
+                Read.Broadcast(&CntLock);
+        else if (ActiveReader==0&&WaitingWriter>0)
+                Write.Signal(&CntLock);
+        CntLock.Release();
+}
+void ThreadTest6(){
+        DEBUG('t', "Entering ThreadTest4\n");
+        Thread* r1=new Thread("Reader 1");
+        Thread* r2=new Thread("Reader 2");
+        Thread* r3=new Thread("Reader 3");
+        Thread* r4=new Thread("Reader 4");
+        Thread* r5=new Thread("Reader 5");
+        Thread* w1=new Thread("writer 1");
+        Thread* w2=new Thread("writer 2");
+        r1->Fork(CReader,(void*)1);
+        r2->Fork(CReader,(void*)1);
+        w1->Fork(CWriter,(void*)1);
+        w2->Fork(CWriter,(void*)1);
+        r3->Fork(CReader,(void*)1);
+        r4->Fork(CReader,(void*)1);
+        r5->Fork(CReader,(void*)1);
+}
 
 
 //----------------------------------------------------------------------
@@ -136,6 +254,10 @@ ThreadTest()
         case 4:
                 ThreadTest4();
                 break;
+        case 5:
+                ThreadTest5();
+        case 6:
+                ThreadTest6();
         default:
                 printf("No test specified.\n");
                 break;
