@@ -169,15 +169,15 @@ int ActiveReader=0;
 int WaitingWriter=0;
 int WaitingReader=0;
 Lock CntLock=Lock("Lock for reader-writer problem");
-Condition Read=Condition("Read");
-Condition Write=Condition("Write");
+Condition ReadCV=Condition("Read");
+Condition WriteCV=Condition("Write");
 void CWriter(int a){
         CntLock.Acquire();
         //Whenever there is a Reader reading or waiting to read
         // the writer shall wait
         while(ActiveReader>0||WaitingReader>0){
                 WaitingWriter++;
-                Write.Wait(&CntLock);
+                WriteCV.Wait(&CntLock);
                 WaitingWriter--;
         }
         ActiveWriter++;
@@ -186,11 +186,11 @@ void CWriter(int a){
         CntLock.Acquire();
         //if there is Reader waiting,wake up them all
         if(WaitingReader>0)
-                Read.Broadcast(&CntLock);
+                ReadCV.Broadcast(&CntLock);
         //if no Reader is reading or waiting to read 
         // Let a writer to write
         else if (ActiveReader==0&&WaitingWriter>0){
-                Write.Signal(&CntLock);
+                WriteCV.Signal(&CntLock);
         }
         CntLock.Release();
 }
@@ -199,7 +199,7 @@ void CReader(int a){
         //When there is a writer writing ,wait
         if(ActiveWriter>0){
                 WaitingReader++;//等待计数器自增
-                Read.Wait(&CntLock);//先放弃锁，然后睡眠，然后被唤醒，获取锁
+                ReadCV.Wait(&CntLock);//先放弃锁，然后睡眠，然后被唤醒，获取锁
                 WaitingReader--;//等待计数器自减
         }
         ActiveReader++;
@@ -209,9 +209,9 @@ void CReader(int a){
         ActiveReader--;
         //if there is any Reader waiting ,wake up them all
         if(WaitingReader>0)
-                Read.Broadcast(&CntLock);
+                ReadCV.Broadcast(&CntLock);
         else if (ActiveReader==0&&WaitingWriter>0)
-                Write.Signal(&CntLock);
+                WriteCV.Signal(&CntLock);
         CntLock.Release();
 }
 void ThreadTest6(){
