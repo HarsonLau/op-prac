@@ -130,6 +130,7 @@ void reader(int a){
                         db.P();
                 mutex.V();
                 printf("%s is reading\n",currentThread->getName());
+                interrupt->OneTick();
 
                 mutex.P();
                 ReaderCnt--;
@@ -150,7 +151,7 @@ void writer(int a){
         }
 }
 void ThreadTest5(){
-        DEBUG('t', "Entering ThreadTest4\n");
+        DEBUG('t', "Entering ThreadTest5\n");
         Thread* w1=new Thread("writer 0");
         Thread* r1=new Thread("Reader 1");
         Thread* r2=new Thread("Reader 2");
@@ -220,6 +221,8 @@ void CReader(int a){
                 ActiveReader++;
                 CntLock.Release();
                 printf("%s is Reading\n",currentThread->getName());
+                interrupt->OneTick();
+
                 CntLock.Acquire();
                 ActiveReader--;
                 //if there is any Reader waiting ,wake up them all
@@ -232,7 +235,7 @@ void CReader(int a){
         }
 }
 void ThreadTest6(){
-        DEBUG('t', "Entering ThreadTest4\n");
+        DEBUG('t', "Entering ThreadTest6\n");
         Thread* r1=new Thread("Reader 1");
         Thread* r2=new Thread("Reader 2");
         Thread* r3=new Thread("Reader 3");
@@ -250,6 +253,30 @@ void ThreadTest6(){
 }
 
 
+//----------------------------------------------------------------------
+// ThreadTest7
+// 	Test routine for Barrier
+//----------------------------------------------------------------------
+Barrier* ba;
+void BarrierTest(int a){
+        while(1){
+                printf("%s has arrived at the barrier\n");
+                interrupt->OneTick();
+                ba->Wait();
+                printf("%s has passed the barrier\n");
+                break;
+        }
+}
+void ThreadTest7(){
+        DEBUG('t', "Entering ThreadTest7\n");
+        ba=new Barrier(3);
+        Thread* t1=new Thread("thread 1");
+        Thread* t2=new Thread("thread 2");
+        Thread* t3=new Thread("thread 3");
+        t1->Fork(BarrierTest,(void *)1);
+        t2->Fork(BarrierTest,(void *)1);
+        t3->Fork(BarrierTest,(void *)1);
+}
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -276,6 +303,9 @@ ThreadTest()
                 break;
         case 6:
                 ThreadTest6();
+                break;
+        case 7:
+                ThreadTest7();
                 break;
         default:
                 printf("No test specified.\n");
