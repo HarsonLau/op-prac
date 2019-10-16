@@ -127,7 +127,7 @@ void reader(int a){
                 if(ReaderCnt==1)
                         db.P();
                 mutex.V();
-                printf("Reader %d is reading\n",currentThread->getTid());
+                printf("%s is reading\n",currentThread->getName());
 
                 mutex.P();
                 ReaderCnt--;
@@ -138,20 +138,22 @@ void reader(int a){
 }
 void writer(int a){
         while(1){
+                printf("%s tries to write\n",currentThread->getName());
                 db.P();
-                printf("writer %d is writing\n",currentThread->getTid());
+                printf("%s is writing\n",currentThread->getName());
                 db.V();
+                currentThread->Yield();
         }
 }
 void ThreadTest5(){
         DEBUG('t', "Entering ThreadTest4\n");
+        Thread* w1=new Thread("writer 0");
         Thread* r1=new Thread("Reader 1");
         Thread* r2=new Thread("Reader 2");
         Thread* r3=new Thread("Reader 3");
         Thread* r4=new Thread("Reader 4");
-        Thread* r5=new Thread("Reader 5");
-        Thread* w1=new Thread("writer 1");
-        Thread* w2=new Thread("writer 2");
+        Thread* w2=new Thread("writer 5");
+        Thread* r5=new Thread("Reader 6");
         r1->Fork(reader,(void*)1);
         r2->Fork(reader,(void*)1);
         r3->Fork(reader,(void*)1);
@@ -182,7 +184,7 @@ void CWriter(int a){
         }
         ActiveWriter++;
         CntLock.Release();
-        printf("Writer %d is Writing\n!");
+        printf("%s is Writing\n!",currentThread->getName());
         CntLock.Acquire();
         //if there is Reader waiting,wake up them all
         if(WaitingReader>0)
@@ -204,7 +206,8 @@ void CReader(int a){
         }
         ActiveReader++;
         CntLock.Release();
-        printf("Reader %d is Reading\n");
+        printf("%s is Reading\n",currentThread->getName());
+        currentThread->Yield();
         CntLock.Acquire();
         ActiveReader--;
         //if there is any Reader waiting ,wake up them all
@@ -221,8 +224,8 @@ void ThreadTest6(){
         Thread* r3=new Thread("Reader 3");
         Thread* r4=new Thread("Reader 4");
         Thread* r5=new Thread("Reader 5");
-        Thread* w1=new Thread("writer 1");
-        Thread* w2=new Thread("writer 2");
+        Thread* w1=new Thread("writer 6");
+        Thread* w2=new Thread("writer 7");
         r1->Fork(CReader,(void*)1);
         r2->Fork(CReader,(void*)1);
         w1->Fork(CWriter,(void*)1);
@@ -256,8 +259,10 @@ ThreadTest()
                 break;
         case 5:
                 ThreadTest5();
+                break;
         case 6:
                 ThreadTest6();
+                break;
         default:
                 printf("No test specified.\n");
                 break;
