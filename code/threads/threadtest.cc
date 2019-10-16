@@ -260,10 +260,10 @@ void ThreadTest6(){
 Barrier* ba;
 void BarrierTest(int a){
         while(1){
-                printf("%s has arrived at the barrier\n");
+                printf("%s has arrived at the barrier\n",currentThread->getName());
                 interrupt->OneTick();
                 ba->Wait();
-                printf("%s has passed the barrier\n");
+                printf("%s has passed the barrier\n",currentThread->getName());
                 break;
         }
 }

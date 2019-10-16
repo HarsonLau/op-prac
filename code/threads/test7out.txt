@@ -1,0 +1,17 @@
+thread 1 has arrived at the barrier
+thread 2 has arrived at the barrier
+thread 3 has arrived at the barrier
+thread 3 has passed the barrier
+thread 1 has passed the barrier
+thread 2 has passed the barrier
+No threads ready or runnable, and no pending interrupts.
+Assuming the program completed.
+Machine halting!
+
+Ticks: total 376, idle 106, system 270, user 0
+Disk I/O: reads 0, writes 0
+Console I/O: reads 0, writes 0
+Paging: faults 0
+Network I/O: packets received 0, sent 0
+
+Cleaning up...
