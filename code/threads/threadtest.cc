@@ -122,6 +122,8 @@ Semaphore db=Semaphore("mutex for DataBase",1);
 int ReaderCnt=0;
 void reader(int a){
         while(1){
+                printf("%s tries to read\n",currentThread->getName());
+                interrupt->OneTick();
                 mutex.P();
                 ReaderCnt++;
                 if(ReaderCnt==1)
@@ -134,15 +136,17 @@ void reader(int a){
                 if(ReaderCnt==0)
                         db.V();
                 mutex.V();
+                printf("%s finished reading\n",currentThread->getName());
         }
 }
 void writer(int a){
         while(1){
+                interrupt->OneTick();
                 printf("%s tries to write\n",currentThread->getName());
                 db.P();
                 printf("%s is writing\n",currentThread->getName());
                 db.V();
-                currentThread->Yield();
+                printf("%s finished writing\n",currentThread->getName());
         }
 }
 void ThreadTest5(){
@@ -174,48 +178,58 @@ Lock CntLock=Lock("Lock for reader-writer problem");
 Condition ReadCV=Condition("Read");
 Condition WriteCV=Condition("Write");
 void CWriter(int a){
-        CntLock.Acquire();
-        //Whenever there is a Reader reading or waiting to read
-        // the writer shall wait
-        while(ActiveReader>0||WaitingReader>0){
-                WaitingWriter++;
-                WriteCV.Wait(&CntLock);
-                WaitingWriter--;
+        while(1){
+                interrupt->OneTick();
+                printf("%s tries to write\n",currentThread->getName());
+                CntLock.Acquire();
+                //Whenever there is a Reader reading or waiting to read
+                // the writer shall wait
+                while(ActiveReader>0||WaitingReader>0){
+                        WaitingWriter++;
+                        WriteCV.Wait(&CntLock);
+                        WaitingWriter--;
+                }
+                ActiveWriter++;
+                CntLock.Release();
+                printf("%s is Writing\n!",currentThread->getName());
+                CntLock.Acquire();
+                ActiveWriter--;
+                //if there is Reader waiting,wake up them all
+                if(WaitingReader>0)
+                        ReadCV.Broadcast(&CntLock);
+                //if no Reader is reading or waiting to read 
+                // Let a writer to write
+                else if (ActiveReader==0&&WaitingWriter>0){
+                        WriteCV.Signal(&CntLock);
+                }
+                CntLock.Release();
+                printf("%s finished writing\n",currentThread->getName());
         }
-        ActiveWriter++;
-        CntLock.Release();
-        printf("%s is Writing\n!",currentThread->getName());
-        CntLock.Acquire();
-        //if there is Reader waiting,wake up them all
-        if(WaitingReader>0)
-                ReadCV.Broadcast(&CntLock);
-        //if no Reader is reading or waiting to read 
-        // Let a writer to write
-        else if (ActiveReader==0&&WaitingWriter>0){
-                WriteCV.Signal(&CntLock);
-        }
-        CntLock.Release();
 }
 void CReader(int a){
-        CntLock.Acquire();//获取锁
-        //When there is a writer writing ,wait
-        if(ActiveWriter>0){
-                WaitingReader++;//等待计数器自增
-                ReadCV.Wait(&CntLock);//先放弃锁，然后睡眠，然后被唤醒，获取锁
-                WaitingReader--;//等待计数器自减
+        while(1){
+                interrupt->OneTick();
+                printf("%s tries to read\n",currentThread->getName());
+                CntLock.Acquire();//获取锁
+                //When there is a writer writing ,wait
+                if(ActiveWriter>0){
+                        WaitingReader++;//等待计数器自增
+                        ReadCV.Wait(&CntLock);//先放弃锁，然后睡眠，然后被唤醒，获取锁
+                        WaitingReader--;//等待计数器自减
+                }
+                ActiveReader++;
+                CntLock.Release();
+                printf("%s is Reading\n",currentThread->getName());
+                CntLock.Acquire();
+                ActiveReader--;
+                //if there is any Reader waiting ,wake up them all
+                if(WaitingReader>0)
+                        ReadCV.Broadcast(&CntLock);
+                else if (ActiveReader==0&&WaitingWriter>0)
+                        WriteCV.Signal(&CntLock);
+                CntLock.Release();
+                printf("%s finished reading\n",currentThread->getName());
         }
-        ActiveReader++;
-        CntLock.Release();
-        printf("%s is Reading\n",currentThread->getName());
-        currentThread->Yield();
-        CntLock.Acquire();
-        ActiveReader--;
-        //if there is any Reader waiting ,wake up them all
-        if(WaitingReader>0)
-                ReadCV.Broadcast(&CntLock);
-        else if (ActiveReader==0&&WaitingWriter>0)
-                WriteCV.Signal(&CntLock);
-        CntLock.Release();
 }
 void ThreadTest6(){
         DEBUG('t', "Entering ThreadTest4\n");
