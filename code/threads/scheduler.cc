@@ -30,6 +30,9 @@
 Scheduler::Scheduler()
 { 
     readyList = new List; 
+#ifdef SCHED_SLICE
+        LastSwitchTick=0;
+#endif
 } 
 
 //----------------------------------------------------------------------
@@ -58,11 +61,19 @@ Scheduler::ReadyToRun (Thread *thread)
         DEBUG('t', "Putting thread %s on ready list.\n", thread->getName());
 
         thread->setStatus(READY);
+#ifdef SCHED_PRIO
         readyList->SortedInsert((void *)thread,thread->getPriority());
 
         if(thread!=currentThread&&thread->getPriority()<currentThread->getPriority())
                 currentThread->Yield();
+#endif
 
+#ifdef SCHED_SLICE
+        readyList->Append((void *)thread);
+        int ticks=stats->systemTicks-LastSwitchTick;
+        if(thread!=currentThread&&ticks>=SliceTicks)
+                currentThread->Yield();
+#endif
 }
 
 //----------------------------------------------------------------------
@@ -83,6 +94,8 @@ Scheduler::FindNextToRun ()
 {
         if(readyList->IsEmpty())
                 return NULL;
+
+        #ifdef SCHED_PRIO
         Thread * candidate=(Thread *)readyList->Remove();
         if(currentThread->getStatus()==BLOCKED)                 
                 return candidate;
@@ -93,6 +106,25 @@ Scheduler::FindNextToRun ()
         }
         else
                 return candidate;
+        #endif
+
+        #ifdef SCHED_SLICE
+                int ticks=stats->systemTicks-LastSwitchTick;
+                Thread * candidate=(Thread *)readyList->Remove();
+                if(currentThread->getStatus()==BLOCKED){
+                        LastSwitchTick=stats->systemTicks;
+                        return candidate;
+                }                 
+                else if(ticks>=SliceTicks){
+                        LastSwitchTick=stats->systemTicks;
+                        return candidate;
+                }
+                else{
+                        readyList->Append(candidate);
+                        return NULL;
+                }
+
+        #endif
 }
 
 //----------------------------------------------------------------------
