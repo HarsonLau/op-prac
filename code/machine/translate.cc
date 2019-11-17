@@ -247,9 +247,115 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     }
     entry->use = TRUE;		// set the use, dirty bits
     if (writing)
-	entry->dirty = TRUE;
+		entry->dirty = TRUE;
+	entry->LastHitTime=stats->totalTicks;
+	PhysicalPageTable[pageFrame].LastHitTime=stats->totalTicks;
     *physAddr = pageFrame * PageSize + offset;
     ASSERT((*physAddr >= 0) && ((*physAddr + size) <= MemorySize));
     DEBUG('a', "phys addr = 0x%x\n", *physAddr);
     return NoException;
+}
+
+int Machine::FIFO_TLB(int virtAddr){
+    int vpn = (unsigned) virtAddr / PageSize;
+	TranslationEntry *entry=&tlb[0];
+	for(int i=0;i<TLBSize;i++){
+		if (tlb[i].valid==false){
+			entry=&tlb[i];
+			break;
+		}
+		else if(tlb[i].InTime<entry->InTime)
+			entry=&tlb[i];
+	}
+	if(entry->valid)
+		pageTable[entry->virtualPage]=*entry;
+	if(pageTable[vpn].valid)
+		*entry=pageTable[vpn];
+	else{
+		/*need to allocate a physical page*/
+		AllocatePhysicalPage(vpn);
+		*entry=pageTable[vpn];
+	}
+		entry->InTime=stats->totalTicks;
+	return 0;
+}
+
+int Machine::LRU_TLB(int virtAddr){
+    int vpn = (unsigned) virtAddr / PageSize;
+	TranslationEntry *entry=&tlb[0];
+	for(int i=0;i<TLBSize;i++){
+		if (tlb[i].valid==false){
+			entry=&tlb[i];
+			break;
+		}
+		else if(tlb[i].LastHitTime<entry->LastHitTime)
+			entry=&tlb[i];
+	}
+	if(entry->valid)
+		pageTable[entry->virtualPage]=*entry;
+	if(pageTable[vpn].valid)
+		*entry=pageTable[vpn];
+	else{
+		/*need to allocate a physical page*/
+		AllocatePhysicalPage(vpn);
+		*entry=pageTable[vpn];
+	}
+		entry->InTime=stats->totalTicks;
+	return 0;
+}
+int Machine::AllocatePhysicalPage(int vpn){
+	int ppn=0;
+	for(int i=0;i<NumPhysPages;i++){
+		if(!PhysicalPageTable[i].valid){
+			ppn=i;
+			break;
+		}
+		if(PhysicalPageTable[i].LastHitTime<PhysicalPageTable[ppn].LastHitTime)
+			ppn=i;
+	}
+
+	int oldVpn=PhysicalPageTable[ppn].VirtualPageNumber;
+	if(PhysicalPageTable[ppn].valid
+	&&pageTable[oldVpn].dirty
+	&&pageTable[oldVpn].valid){
+		ASSERT(pageTable[oldVpn].physicalPage==ppn);
+		Thread*T=PhysicalPageTable[ppn].OwnerThread;
+		if(T){
+			T->space->DiskAddrSpace->WriteAt(
+				&mainMemory[ppn*PageSize],
+				PageSize,
+				oldVpn*PageSize
+			);
+			/*the ownner thread is not on CPU ,but his page table has changed
+			* we need to update this change to his addr space date structure
+			*/
+			T->space->pageTable[oldVpn].valid=false;
+			T->space->pageTable[oldVpn].dirty=false;
+		}
+	}
+
+	currentThread->space->DiskAddrSpace->ReadAt(
+		&mainMemory[ppn*PageSize],
+		PageSize,
+		vpn*PageSize
+	);
+
+	/*update the global physical page table*/
+	PhysicalPageTable[ppn].LastHitTime		=stats->totalTicks;
+	PhysicalPageTable[ppn].valid			=true;
+	PhysicalPageTable[ppn].OwnerThread		=currentThread;
+	PhysicalPageTable[ppn].VirtualPageNumber=vpn;
+
+	/*modify the page table in the hardware*/
+	pageTable[vpn].valid		=true;
+	pageTable[vpn].dirty		=false;
+	pageTable[vpn].use			=false;
+	pageTable[vpn].readOnly		=false;
+	pageTable[vpn].physicalPage	=ppn;
+	pageTable[vpn].virtualPage	=vpn;
+	pageTable[vpn].InTime		=stats->totalTicks;
+	pageTable[vpn].LastHitTime	=stats->totalTicks;
+
+	/*the vpn is not in tlb,so we do not need to update tlb*/
+	return ppn;
 }

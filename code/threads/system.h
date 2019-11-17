@@ -33,10 +33,17 @@ extern bool *TidMap;                          // recording the tid usage
 extern int MinAvailableTid;                     // the minimum tid which is available
 extern List *PCBList;                           // the list of pointers to all PCBs
 
-
+class PhysicalPageEntry{
+	public:
+	int VirtualPageNumber;
+	Thread* OwnerThread;
+	int LastHitTime;
+	bool valid;
+}
 #ifdef USER_PROGRAM
 #include "machine.h"
 extern Machine* machine;	// user program memory and registers
+extern PhysicalPageEntry* PhysicalPageTable;
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

@@ -23,13 +23,41 @@
 #include <strings.h>
 #endif
 
+/**
+ * C++ version 0.4 char* style "itoa":
+ * Written by Lukás Chmela
+ * Released under GPLv3.
+ */
+char* itoa(int value, char* result, int base) {
+    // check that the base if valid
+    if (base < 2 || base > 36) { *result = '\0'; return result; }
+
+    char* ptr = result, *ptr1 = result, tmp_char;
+    int tmp_value;
+
+    do {
+        tmp_value = value;
+        value /= base;
+        *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
+    } while ( value );
+
+    // Apply negative sign
+    if (tmp_value < 0) *ptr++ = '-';
+    *ptr-- = '\0';
+    while(ptr1 < ptr) {
+        tmp_char = *ptr;
+        *ptr--= *ptr1;
+        *ptr1++ = tmp_char;
+    }
+    return result;
+}
+
 //----------------------------------------------------------------------
 // SwapHeader
 // 	Do little endian to big endian conversion on the bytes in the 
 //	object file header, in case the file was generated on a little
 //	endian machine, and we're now running on a big endian machine.
 //----------------------------------------------------------------------
-
 static void 
 SwapHeader (NoffHeader *noffH)
 {
@@ -59,7 +87,6 @@ SwapHeader (NoffHeader *noffH)
 //
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
-
 AddrSpace::AddrSpace(OpenFile *executable)
 {
     NoffHeader noffH;
@@ -78,51 +105,50 @@ AddrSpace::AddrSpace(OpenFile *executable)
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
-						// to run anything too big --
-						// at least until we have
-						// virtual memory
-
-    DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
-					numPages, size);
-// first, set up the translation 
+	// all the pageTableEntry are invalid 
+	// when accessing the memory 
+	// A page fault will be raised to 
+	// allocate physical memory 
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = i;
-	pageTable[i].valid = TRUE;
-	pageTable[i].use = FALSE;
-	pageTable[i].dirty = FALSE;
-	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
-					// a separate page, we could set its 
-					// pages to be read-only
+		pageTable[i].valid = FALSE;
     }
-    
-// zero out the entire address space, to zero the unitialized data segment 
-// and the stack segment
-    bzero(machine->mainMemory, size);
 
-// then, copy in the code and data segments into memory
+	// create the disk addrspace image on the disk
+	char DiskFileName[16];
+	int tid=currentThread->getTid();
+	itoa(tid,DiskFileName,8);
+	char *FileSuffix=".das";
+	strcat(DiskFileName,FileSuffix);
+	if(fileSystem->Create(DiskFileName)){
+		DiskAddrSpace=fileSystem->Open(DiskFileName);
+	}else{
+		printf("failed to create a disk address space");
+		printf("for thread%d,at %s,in line %d\n",tid,__FILE__,__LINE__);
+		ASSERT(FALSE);
+	}
+    
+	//save the addrspace image on the disk
+	char *tmp=new char[size];
     if (noffH.code.size > 0) {
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
-			noffH.code.size, noffH.code.inFileAddr);
+        executable->	ReadAt(&tmp[0],noffH.code.size, noffH.code.inFileAddr);
+		DiskAddrSpace->WriteAt(&tmp[0],noffH.code.size, noffH.code.virtualAddr);
     }
     if (noffH.initData.size > 0) {
         DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
 			noffH.initData.virtualAddr, noffH.initData.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
-			noffH.initData.size, noffH.initData.inFileAddr);
+        executable->	ReadAt(&tmp[noffH.code.size],noffH.initData.size, noffH.initData.inFileAddr);
+		DiskAddrSpace->	WriteAt(&tmp[noffH.code.size],noffH.initData.size, noffH.initData.virtualAddr);
     }
-
+	delete tmp;
 }
 
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace
 // 	Dealloate an address space.  Nothing for now!
 //----------------------------------------------------------------------
-
 AddrSpace::~AddrSpace()
 {
    delete pageTable;
@@ -137,7 +163,6 @@ AddrSpace::~AddrSpace()
 //	will be saved/restored into the currentThread->userRegisters
 //	when this thread is context switched out.
 //----------------------------------------------------------------------
-
 void
 AddrSpace::InitRegisters()
 {
@@ -167,9 +192,29 @@ AddrSpace::InitRegisters()
 //
 //	For now, nothing!
 //----------------------------------------------------------------------
-
 void AddrSpace::SaveState() 
-{}
+{
+	for(int i=0;i<TLBSize;i++){
+		if(machine->tlb[i].valid){
+			machine->pageTable[i]=machine->tlb[i];
+			machine->tlb[i].valid=false;
+		}
+	}
+	/* an easy but less sufficient way 
+	for (int i=0;i<machine->pageTableSize;i++){
+		if(machine->pageTable[i].valid&&machine->pageTable[i].dirty){
+			DiskAddrSpace->WriteAt(
+				&(machine->mainMemory[machine->pageTable[i].physicalPage*PageSize]),
+				PageSize,
+				i*PageSize
+			);
+			machine->pageTable[i].dirty=false;
+		}
+	}
+	*/
+	pageTable=machine->pageTable;
+	numPages=machine->pageTableSize;
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::RestoreState
@@ -178,7 +223,6 @@ void AddrSpace::SaveState()
 //
 //      For now, tell the machine where to find the page table.
 //----------------------------------------------------------------------
-
 void AddrSpace::RestoreState() 
 {
     machine->pageTable = pageTable;

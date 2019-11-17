@@ -145,6 +145,9 @@ class Machine {
 
     void Debugger();		// invoke the user program debugger
     void DumpState();		// print the user CPU and memory state 
+	int  LRU_TLB (int virtAddr);
+	int  FIFO_TLB(int virtAddr);
+	int  AllocatePhysicalPage(int vpn);
 
 
 // Data structures -- all of these are accessible to Nachos kernel code.

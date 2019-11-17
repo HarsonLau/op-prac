@@ -335,7 +335,6 @@ Thread::StackAllocate (VoidFunctionPtr func, void *arg)
 //	one for its state while executing user code, one for its state 
 //	while executing kernel code.  This routine saves the former.
 //----------------------------------------------------------------------
-
 void
 Thread::SaveUserState()
 {
@@ -351,7 +350,6 @@ Thread::SaveUserState()
 //	one for its state while executing user code, one for its state 
 //	while executing kernel code.  This routine restores the former.
 //----------------------------------------------------------------------
-
 void
 Thread::RestoreUserState()
 {
