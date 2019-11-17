@@ -120,7 +120,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	itoa(tid,DiskFileName,8);
 	char *FileSuffix=".das";
 	strcat(DiskFileName,FileSuffix);
-	if(fileSystem->Create(DiskFileName)){
+	if(fileSystem->Create(DiskFileName,size)){
 		DiskAddrSpace=fileSystem->Open(DiskFileName);
 	}else{
 		printf("failed to create a disk address space");

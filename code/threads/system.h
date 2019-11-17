@@ -39,7 +39,7 @@ class PhysicalPageEntry{
 	Thread* OwnerThread;
 	int LastHitTime;
 	bool valid;
-}
+};
 #ifdef USER_PROGRAM
 #include "machine.h"
 extern Machine* machine;	// user program memory and registers
