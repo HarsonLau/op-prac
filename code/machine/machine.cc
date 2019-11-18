@@ -23,7 +23,6 @@ static char* exceptionNames[] = { "no exception", "syscall",
 // 	Check to be sure that the host really uses the format it says it 
 //	does, for storing the bytes of an integer.  Stop on error.
 //----------------------------------------------------------------------
-
 static
 void CheckEndian()
 {
@@ -51,7 +50,6 @@ void CheckEndian()
 //	"debug" -- if TRUE, drop into the debugger after each user instruction
 //		is executed.
 //----------------------------------------------------------------------
-
 Machine::Machine(bool debug)
 {
     int i;
@@ -79,7 +77,6 @@ Machine::Machine(bool debug)
 // Machine::~Machine
 // 	De-allocate the data structures used to simulate user program execution.
 //----------------------------------------------------------------------
-
 Machine::~Machine()
 {
     delete [] mainMemory;
@@ -96,7 +93,6 @@ Machine::~Machine()
 //	"which" -- the cause of the kernel trap
 //	"badVaddr" -- the virtual address causing the trap, if appropriate
 //----------------------------------------------------------------------
-
 void
 Machine::RaiseException(ExceptionType which, int badVAddr)
 {
@@ -119,7 +115,6 @@ Machine::RaiseException(ExceptionType which, int badVAddr)
 //
 //	So just allow single-stepping, and printing the contents of memory.
 //----------------------------------------------------------------------
-
 void Machine::Debugger()
 {
     char *buf = new char[80];
@@ -159,7 +154,6 @@ void Machine::Debugger()
 // 	Print the user program's CPU state.  We might print the contents
 //	of memory, but that seemed like overkill.
 //----------------------------------------------------------------------
-
 void
 Machine::DumpState()
 {
@@ -198,7 +192,6 @@ Machine::DumpState()
 // Machine::ReadRegister/WriteRegister
 //   	Fetch or write the contents of a user program register.
 //----------------------------------------------------------------------
-
 int Machine::ReadRegister(int num)
     {
 	ASSERT((num >= 0) && (num < NumTotalRegs));

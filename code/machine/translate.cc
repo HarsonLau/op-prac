@@ -182,7 +182,6 @@ Machine::WriteMem(int addr, int size, int value)
 //	"size" -- the amount of memory being read or written
 // 	"writing" -- if TRUE, check the "read-only" bit in the TLB
 //----------------------------------------------------------------------
-
 ExceptionType
 Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 {
@@ -320,6 +319,13 @@ int Machine::AllocatePhysicalPage(int vpn){
 	&&pageTable[oldVpn].valid){
 		ASSERT(pageTable[oldVpn].physicalPage==ppn);
 		Thread*T=PhysicalPageTable[ppn].OwnerThread;
+
+		/*if T is the current thread ,then these updations will be covered
+		* when this thread is scheduled off the cpu
+		* if T is not the current thread ,then we do need to update the 
+		* the data in his PCB
+		* In a word ,we do not need to consider these two situation accordingly
+		*/
 		if(T){
 			T->space->DiskAddrSpace->WriteAt(
 				&mainMemory[ppn*PageSize],
