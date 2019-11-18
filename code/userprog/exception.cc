@@ -57,10 +57,19 @@ ExceptionHandler(ExceptionType which)
 	DEBUG('a', "Shutdown, initiated by user program.\n");
    	interrupt->Halt();
     } 
+    else if(which==SyscallException&&(type==SC_Exit)){
+	DEBUG('a', "Exit, initiated by user program.\n");
+        printf("thread finished with code %d\n",machine->ReadRegister(4));
+        currentThread->Finish();
+    }
 	else if(which==PageFaultException){
 		int virtAddr=machine->registers[BadVAddrReg];
 		machine->LRU_TLB(virtAddr);
 	}
+        else if(which==IllegalInstrException){
+                printf("Ilegal Instruction exception\n");
+                ASSERT(FALSE);
+        }
 	else {
 		printf("Unexpected user mode exception %d %d\n", which, type);
 		ASSERT(FALSE);

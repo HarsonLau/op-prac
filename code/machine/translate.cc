@@ -96,7 +96,13 @@ Machine::ReadMem(int addr, int size, int *value)
     exception = Translate(addr, &physicalAddress, size, FALSE);
     if (exception != NoException) {
 	machine->RaiseException(exception, addr);
-	return FALSE;
+        if(exception!=PageFaultException)
+                return false;
+        exception = Translate(addr, &physicalAddress, size, FALSE);
+        if (exception != NoException) {
+                machine->RaiseException(exception, addr);
+	        return FALSE;
+        }
     }
     switch (size) {
       case 1:
@@ -145,7 +151,13 @@ Machine::WriteMem(int addr, int size, int value)
     exception = Translate(addr, &physicalAddress, size, TRUE);
     if (exception != NoException) {
 	machine->RaiseException(exception, addr);
-	return FALSE;
+        if(exception!=PageFaultException)
+                return false;
+        exception = Translate(addr, &physicalAddress, size, FALSE);
+        if (exception != NoException) {
+                machine->RaiseException(exception, addr);
+	        return FALSE;
+        }
     }
     switch (size) {
       case 1:
@@ -198,10 +210,6 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	return AddressErrorException;
     }
     
-    // we must have either a TLB or a page table, but not both!
-    ASSERT(tlb == NULL || pageTable == NULL);	
-    ASSERT(tlb != NULL || pageTable != NULL);	
-
 // calculate the virtual page number, and offset within the page,
 // from the virtual address
     vpn = (unsigned) virtAddr / PageSize;
@@ -259,7 +267,7 @@ int Machine::FIFO_TLB(int virtAddr){
     int vpn = (unsigned) virtAddr / PageSize;
 	TranslationEntry *entry=&tlb[0];
 	for(int i=0;i<TLBSize;i++){
-		if (tlb[i].valid==false){
+		if (!tlb[i].valid){
 			entry=&tlb[i];
 			break;
 		}
@@ -283,7 +291,7 @@ int Machine::LRU_TLB(int virtAddr){
     int vpn = (unsigned) virtAddr / PageSize;
 	TranslationEntry *entry=&tlb[0];
 	for(int i=0;i<TLBSize;i++){
-		if (tlb[i].valid==false){
+		if (!tlb[i].valid){
 			entry=&tlb[i];
 			break;
 		}
@@ -326,7 +334,7 @@ int Machine::AllocatePhysicalPage(int vpn){
 		* the data in his PCB
 		* In a word ,we do not need to consider these two situation accordingly
 		*/
-		if(T){
+		if(T&&T->getTid()!=currentThread->getTid()){
 			T->space->DiskAddrSpace->WriteAt(
 				&mainMemory[ppn*PageSize],
 				PageSize,
@@ -338,6 +346,15 @@ int Machine::AllocatePhysicalPage(int vpn){
 			T->space->pageTable[oldVpn].valid=false;
 			T->space->pageTable[oldVpn].dirty=false;
 		}
+                else if(T){
+                        currentThread->space->DiskAddrSpace->WriteAt(
+				&mainMemory[ppn*PageSize],
+				PageSize,
+				oldVpn*PageSize
+                        );
+                        pageTable[oldVpn].valid=false;
+                        pageTable[oldVpn].dirty=false;
+                }
 	}
 
 	currentThread->space->DiskAddrSpace->ReadAt(
@@ -350,12 +367,12 @@ int Machine::AllocatePhysicalPage(int vpn){
 	PhysicalPageTable[ppn].LastHitTime		=stats->totalTicks;
 	PhysicalPageTable[ppn].valid			=true;
 	PhysicalPageTable[ppn].OwnerThread		=currentThread;
-	PhysicalPageTable[ppn].VirtualPageNumber=vpn;
+	PhysicalPageTable[ppn].VirtualPageNumber        =vpn;
 
 	/*modify the page table in the hardware*/
 	pageTable[vpn].valid		=true;
 	pageTable[vpn].dirty		=false;
-	pageTable[vpn].use			=false;
+	pageTable[vpn].use		=false;
 	pageTable[vpn].readOnly		=false;
 	pageTable[vpn].physicalPage	=ppn;
 	pageTable[vpn].virtualPage	=vpn;
