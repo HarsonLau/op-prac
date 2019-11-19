@@ -290,7 +290,7 @@ int Machine::FIFO_TLB(int virtAddr){
 
 int Machine::LRU_TLB(int virtAddr){
         //printf("LRU TLB callled for vpn %d\n",virtAddr);
-        int vpn = (unsigned) virtAddr / PageSize;
+        unsigned int vpn = (unsigned) virtAddr / PageSize;
 	TranslationEntry *entry=&tlb[0];
 	for(int i=0;i<TLBSize;i++){
 		if (!tlb[i].valid){
@@ -356,10 +356,12 @@ int Machine::AllocatePhysicalPage(int vpn){
 
 		/* update pagetable (hardware and pcb) */
 		for(int i=0;i<pageTableSize;i++){
-			if(pageTable[i].physicalPage==ppn){
+			if(pageTable[i].physicalPage==ppn&& pageTable[i].valid){
 				pageTable[i].valid=false;
-				if(T)
+				if(T){
 					T->space->pageTable[i].valid=false;
+					T->space->pageTable[i].dirty=false;
+				}
 			}
 		}
 	}

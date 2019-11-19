@@ -62,7 +62,7 @@ ExceptionHandler(ExceptionType which)
         currentThread->Finish();
     }
 	else if(which==PageFaultException){
-		int virtAddr=machine->registers[BadVAddrReg];
+		int virtAddr=machine->ReadRegister(BadVAddrReg);
 		machine->LRU_TLB(virtAddr);
 	}
         else if(which==IllegalInstrException){
