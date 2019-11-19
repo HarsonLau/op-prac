@@ -334,7 +334,7 @@ int Machine::AllocatePhysicalPage(int vpn){
 				PhysicalPageTable[ppn].VirtualPageNumber*PageSize
 			);
 			#else
-			memcpy(&(T->space->vSpace[ppn*PageSize]),
+			memcpy(&(T->space->vSpace[PhysicalPageTable[ppn].VirtualPageNumber*PageSize]),
 				&(machine->mainMemory[ppn*PageSize]),
 				PageSize);
 			#endif
@@ -365,10 +365,10 @@ int Machine::AllocatePhysicalPage(int vpn){
 		vpn*PageSize
 	);
 	#else
-	memcpy(
-			&(machine->mainMemory[ppn*PageSize]),
+	memcpy(&(machine->mainMemory[ppn*PageSize]),
 			&(currentThread->space->vSpace[vpn*PageSize]),
-			PageSize);
+			PageSize
+			);
 	#endif
 	
 
