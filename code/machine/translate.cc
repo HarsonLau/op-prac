@@ -326,6 +326,16 @@ int Machine::AllocatePhysicalPage(int vpn){
 			ppn=i;
 	}
 
+	int OldVpn=PhysicalPageTable[ppn].VirtualPageNumber;
+	printf("ppn is %2d,OldVPn is %2d,vpn is %2d,");
+	if(pageTable[OldVpn].valid&&pageTable[OldVpn].dirty){
+		printf("need to swap out \n");
+	}
+	else
+	{
+		printf("no need to swap out\n");
+	}
+	
 	/* if the physical page has been occupied ,
 	*	first , if it is dirty,write back
 	*	second ,its tlb , page table need to be updated
@@ -334,7 +344,7 @@ int Machine::AllocatePhysicalPage(int vpn){
 		Thread *T=PhysicalPageTable[ppn].OwnerThread;
 		/* write back */
 		if(T&&pageTable[PhysicalPageTable[ppn].VirtualPageNumber].dirty){
-			printf("write out ");
+			printf("   Swap out ");
 			#ifdef DiskImage
 			T->space->DiskAddrSpace->WriteAt(
 				&(machine->mainMemory[ppn*PageSize]),
@@ -370,7 +380,6 @@ int Machine::AllocatePhysicalPage(int vpn){
 		}
 	}
 
-	printf("read in \n");
 	memset(&mainMemory[ppn*PageSize],0,PageSize);
 	#ifdef DiskImage
 	currentThread->space->DiskAddrSpace->ReadAt(
