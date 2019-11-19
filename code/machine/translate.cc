@@ -153,7 +153,7 @@ Machine::WriteMem(int addr, int size, int value)
      
     DEBUG('a', "Writing VA 0x%x, size %d, value 0x%x\n", addr, size, value);
 
-    exception = Translate(addr, &physicalAddress, size, TRUE);
+    exception = Translate(addr, &physicalAddress, size, true);
     if (exception != NoException) {
 	machine->RaiseException(exception, addr);
         if(exception!=PageFaultException)
@@ -255,6 +255,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     if (writing){
         entry->dirty = true;
         pageTable[vpn].dirty=true;
+	PhysicalPageTable[pageFrame].dirty=true;
     }
 	entry->LastHitTime=stats->totalTicks;
 	PhysicalPageTable[pageFrame].LastHitTime=stats->totalTicks;
@@ -327,15 +328,18 @@ int Machine::AllocatePhysicalPage(int vpn){
 	}
 
 	int OldVpn=PhysicalPageTable[ppn].VirtualPageNumber;
-	printf("ppn is %2d,OldVPn is %2d,vpn is %2d,");
+
+	/* 
+	printf("ppn is %2d,OldVPn is %2d,vpn is %2d,",ppn,OldVpn,vpn);
 	if(pageTable[OldVpn].valid&&pageTable[OldVpn].dirty){
-		printf("need to swap out \n");
+		printf("do need to swap out \n");
 	}
 	else
 	{
 		printf("no need to swap out\n");
 	}
-	
+	*/
+
 	/* if the physical page has been occupied ,
 	*	first , if it is dirty,write back
 	*	second ,its tlb , page table need to be updated
@@ -343,8 +347,8 @@ int Machine::AllocatePhysicalPage(int vpn){
 	if(PhysicalPageTable[ppn].valid){
 		Thread *T=PhysicalPageTable[ppn].OwnerThread;
 		/* write back */
-		if(T&&pageTable[PhysicalPageTable[ppn].VirtualPageNumber].dirty){
-			printf("   Swap out ");
+		if(T/*  &&PhysicalPageTable[ppn].dirty /* &&pageTable[PhysicalPageTable[ppn].VirtualPageNumber].dirty*/){
+			//printf("   Swap out \n");
 			#ifdef DiskImage
 			T->space->DiskAddrSpace->WriteAt(
 				&(machine->mainMemory[ppn*PageSize]),
@@ -362,7 +366,6 @@ int Machine::AllocatePhysicalPage(int vpn){
 		for(int i=0;i<TLBSize;i++){
 			if(tlb[i].valid&&tlb[i].physicalPage==ppn){
 				tlb[i].valid=false;
-				tlb[i].dirty=false;
 			}
 				
 		}
@@ -371,16 +374,13 @@ int Machine::AllocatePhysicalPage(int vpn){
 		for(int i=0;i<pageTableSize;i++){
 			if(pageTable[i].physicalPage==ppn&& pageTable[i].valid){
 				pageTable[i].valid=false;
-				pageTable[i].dirty=false;
 				if(T){
 					T->space->pageTable[i].valid=false;
-					T->space->pageTable[i].dirty=false;
 				}
 			}
 		}
 	}
 
-	memset(&mainMemory[ppn*PageSize],0,PageSize);
 	#ifdef DiskImage
 	currentThread->space->DiskAddrSpace->ReadAt(
 		&(machine->mainMemory[ppn*PageSize]),
@@ -394,17 +394,17 @@ int Machine::AllocatePhysicalPage(int vpn){
 			);
 	#endif
 	
-
 	/*update the global physical page table*/
 	PhysicalPageTable[ppn].LastHitTime		=stats->totalTicks;
 	PhysicalPageTable[ppn].valid			=true;
+	PhysicalPageTable[ppn].dirty			=false;
 	PhysicalPageTable[ppn].OwnerThread		=currentThread;
 	PhysicalPageTable[ppn].VirtualPageNumber        =vpn;
 
 	/*modify the page table in the hardware*/
 	pageTable[vpn].valid		=true;
 	pageTable[vpn].dirty		=false;
-	pageTable[vpn].use			=false;
+	pageTable[vpn].use		=false;
 	pageTable[vpn].readOnly		=false;
 	pageTable[vpn].physicalPage	=ppn;
 	pageTable[vpn].virtualPage	=vpn;
@@ -434,6 +434,7 @@ void Machine::TLB_PageTable_check(){
 		if(PhysicalPageTable[i].valid){
 			ASSERT(pageTable[PhysicalPageTable[i].VirtualPageNumber].valid);
 			ASSERT(pageTable[PhysicalPageTable[i].VirtualPageNumber].physicalPage==i);
+			ASSERT(pageTable[PhysicalPageTable[i].VirtualPageNumber].dirty==PhysicalPageTable[i].dirty);
 		}
 	}
 }

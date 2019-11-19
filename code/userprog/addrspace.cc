@@ -212,18 +212,6 @@ void AddrSpace::SaveState()
 			machine->tlb[i].valid=false;
 		}
 	}
-	/* an easy but less sufficient way 
-	for (int i=0;i<machine->pageTableSize;i++){
-		if(machine->pageTable[i].valid&&machine->pageTable[i].dirty){
-			DiskAddrSpace->WriteAt(
-				&(machine->mainMemory[machine->pageTable[i].physicalPage*PageSize]),
-				PageSize,
-				i*PageSize
-			);
-			machine->pageTable[i].dirty=false;
-		}
-	}
-	*/
 	pageTable=machine->pageTable;
 	numPages=machine->pageTableSize;
 }
@@ -239,10 +227,4 @@ void AddrSpace::RestoreState()
 {
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
-	for(int i=0;i<TLBSize;i++){
-		if(machine->tlb[i].valid){
-			machine->pageTable[machine->tlb[i].virtualPage]=machine->tlb[i];
-			machine->tlb[i].valid=false;
-		}
-	}
 }

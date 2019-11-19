@@ -164,6 +164,7 @@ Initialize(int argc, char **argv)
 			PhysicalPageTable[i].OwnerThread=NULL;
 			PhysicalPageTable[i].LastHitTime=0;
 			PhysicalPageTable[i].valid=false;
+			PhysicalPageTable[i].dirty=false;
 		}
     #endif
 

@@ -7,7 +7,6 @@
 
 #ifndef SYSTEM_H
 #define SYSTEM_H
-
 #include "copyright.h"
 #include "utility.h"
 #include "thread.h"
@@ -39,6 +38,7 @@ class PhysicalPageEntry{
 	Thread* OwnerThread;
 	int LastHitTime;
 	bool valid;
+	bool dirty;
 };
 #ifdef USER_PROGRAM
 #include "machine.h"
