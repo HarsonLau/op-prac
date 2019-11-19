@@ -304,6 +304,9 @@ int Machine::LRU_TLB(int virtAddr){
 	return 0;
 }
 int Machine::AllocatePhysicalPage(int vpn){
+	TLB_PageTable_check();
+
+	/*choose a physical page*/
 	int ppn=0;
 	for(int i=0;i<NumPhysPages;i++){
 		if(!PhysicalPageTable[i].valid){
@@ -313,57 +316,47 @@ int Machine::AllocatePhysicalPage(int vpn){
 		if(PhysicalPageTable[i].LastHitTime<PhysicalPageTable[ppn].LastHitTime)
 			ppn=i;
 	}
-	int oldVpn=PhysicalPageTable[ppn].VirtualPageNumber;
-        //printf("oldVpn %d ppn %d for vpn %d \n",oldVpn,ppn,vpn);
-	if(PhysicalPageTable[ppn].valid
-	&&pageTable[oldVpn].dirty
-	&&pageTable[oldVpn].valid){
-		ASSERT(pageTable[oldVpn].physicalPage==ppn);
-		Thread*T=PhysicalPageTable[ppn].OwnerThread;
 
-		/*if T is the current thread ,then these updations will be covered
-		* when this thread is scheduled off the cpu
-		* if T is not the current thread ,then we do need to update the 
-		* the data in his PCB
-		* In a word ,we do not need to consider these two situation accordingly
-		*/
-		if(T&&T->getTid()!=currentThread->getTid()){
-                        printf("swap between a thread\n");
+	/* if the physical page has been occupied ,
+	*	first , if it is dirty,write back
+	*	second ,its tlb , page table need to be updated
+	 */
+	if(PhysicalPageTable[ppn].valid){
+		Thread *T=PhysicalPageTable[ppn].OwnerThread;
+		/* write back */
+		if(T&&pageTable[PhysicalPageTable[ppn].VirtualPageNumber].dirty){
+			printf("write out ");
 			T->space->DiskAddrSpace->WriteAt(
-				&mainMemory[ppn*PageSize],
+				&(machine->mainMemory[ppn*PageSize]),
 				PageSize,
-				oldVpn*PageSize
+				PhysicalPageTable[ppn].VirtualPageNumber*PageSize
 			);
-			/*the ownner thread is not on CPU ,but his page table has changed
-			* we need to update this change to his addr space date structure
-			*/
-			T->space->pageTable[oldVpn].valid=false;
-			T->space->pageTable[oldVpn].dirty=false;
 		}
-                else if(T){
-                        //printf("swap within a thread\n");
-                        currentThread->space->DiskAddrSpace->WriteAt(
-				&mainMemory[ppn*PageSize],
-				PageSize,
-				oldVpn*PageSize
-                        );
-                }
+
+		/* update tlb*/
+		for(int i=0;i<TLBSize;i++){
+			if(tlb[i].physicalPage==ppn)
+				tlb[i].valid=false;
+		}
+
+		/* update pagetable (hardware and pcb) */
+		for(int i=0;i<pageTableSize;i++){
+			if(pageTable[i].physicalPage==ppn){
+				pageTable[i].valid=false;
+				if(T)
+					T->space->pageTable[i].valid=false;
+			}
+		}
 	}
 
-        pageTable[oldVpn].valid=false;
-        pageTable[oldVpn].dirty=false;
-        for(int i=0;i<TLBSize;i++){
-                if(tlb[i].virtualPage==oldVpn){
-                        tlb[i].valid=false;
-                        pageTable[oldVpn].dirty=false;
-                }
-	}
-
+	printf("read in \n");
+	memset(&mainMemory[ppn*PageSize],0,PageSize);
 	currentThread->space->DiskAddrSpace->ReadAt(
-		&mainMemory[ppn*PageSize],
+		&(machine->mainMemory[ppn*PageSize]),
 		PageSize,
 		vpn*PageSize
 	);
+	
 
 	/*update the global physical page table*/
 	PhysicalPageTable[ppn].LastHitTime		=stats->totalTicks;
@@ -381,6 +374,29 @@ int Machine::AllocatePhysicalPage(int vpn){
 	pageTable[vpn].InTime		=stats->totalTicks;
 	pageTable[vpn].LastHitTime	=stats->totalTicks;
 
-	/*the vpn is not in tlb,so we do not need to update tlb*/
+	TLB_PageTable_check();
 	return ppn;
+}
+void Machine::TLB_PageTable_check(){
+	for(int i=0;i<TLBSize;i++){
+		if(tlb[i].valid){
+			ASSERT(tlb[i].physicalPage==pageTable[tlb[i].virtualPage].physicalPage);
+			ASSERT(pageTable[tlb[i].virtualPage].valid);
+			ASSERT(PhysicalPageTable[tlb[i].physicalPage].valid);
+		}
+	}
+
+	for(int i=0;i<pageTableSize;i++){
+		if(pageTable[i].valid){
+			ASSERT(PhysicalPageTable[pageTable[i].physicalPage].valid);
+			ASSERT(PhysicalPageTable[pageTable[i].physicalPage].VirtualPageNumber==i);
+		}
+	}
+
+	for(int i=0;i<NumPhysPages;i++){
+		if(PhysicalPageTable[i].valid){
+			ASSERT(pageTable[PhysicalPageTable[i].VirtualPageNumber].valid);
+			ASSERT(pageTable[PhysicalPageTable[i].VirtualPageNumber].physicalPage==i);
+		}
+	}
 }

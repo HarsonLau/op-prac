@@ -111,7 +111,8 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	// allocate physical memory 
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-		pageTable[i].valid = FALSE;
+		pageTable[i].valid = false;
+		pageTable[i].dirty = false;
     }
 
 	// create the disk addrspace image on the disk
@@ -130,17 +131,19 @@ AddrSpace::AddrSpace(OpenFile *executable)
     
 	//save the addrspace image on the disk
 	char *tmp=new char[size];
+	memset(tmp,0,size);
+	DiskAddrSpace->WriteAt(&tmp[0],size, 0);
     if (noffH.code.size > 0) {
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
         executable->	ReadAt(&tmp[0],noffH.code.size, noffH.code.inFileAddr);
-		DiskAddrSpace->WriteAt(&tmp[0],noffH.code.size, noffH.code.virtualAddr);
+		DiskAddrSpace->WriteAt(&tmp[0],noffH.code.size, 0);
     }
     if (noffH.initData.size > 0) {
         DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
 			noffH.initData.virtualAddr, noffH.initData.size);
         executable->	ReadAt(&tmp[noffH.code.size],noffH.initData.size, noffH.initData.inFileAddr);
-		DiskAddrSpace->	WriteAt(&tmp[noffH.code.size],noffH.initData.size, noffH.initData.virtualAddr);
+		DiskAddrSpace->	WriteAt(&tmp[noffH.code.size],noffH.initData.size, noffH.code.size);
     }
 	delete tmp;
 }
@@ -227,4 +230,10 @@ void AddrSpace::RestoreState()
 {
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
+for(int i=0;i<TLBSize;i++){
+	if(machine->tlb[i].valid){
+		machine->pageTable[i]=machine->tlb[i];
+		machine->tlb[i].valid=false;
+	}
+}
 }

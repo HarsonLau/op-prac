@@ -160,7 +160,7 @@ Initialize(int argc, char **argv)
         machine = new Machine(debugUserProg);	// this must come first
 		PhysicalPageTable=new PhysicalPageEntry[NumPhysPages];
 		for(int i=0;i<NumPhysPages;i++){
-			PhysicalPageTable[i].VirtualPageNumber=i;
+			PhysicalPageTable[i].VirtualPageNumber=0;
 			PhysicalPageTable[i].OwnerThread=NULL;
 			PhysicalPageTable[i].LastHitTime=0;
 			PhysicalPageTable[i].valid=false;

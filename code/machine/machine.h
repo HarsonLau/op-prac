@@ -148,6 +148,7 @@ class Machine {
 	int  LRU_TLB (int virtAddr);
 	int  FIFO_TLB(int virtAddr);
 	int  AllocatePhysicalPage(int vpn);
+	void TLB_PageTable_check();
 
 
 // Data structures -- all of these are accessible to Nachos kernel code.
