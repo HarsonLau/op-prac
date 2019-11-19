@@ -30,8 +30,12 @@ class AddrSpace {
 
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
+	#ifdef DiskImage
 	OpenFile* DiskAddrSpace;	// File used to store the process's addr s
 								//	space in the disk
+	#else
+	char * vSpace;
+	#endif
 
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!

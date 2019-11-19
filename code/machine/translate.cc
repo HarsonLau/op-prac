@@ -33,6 +33,7 @@
 #include "machine.h"
 #include "addrspace.h"
 #include "system.h"
+#include <string.h>
 
 // Routines for converting Words and Short Words to and from the
 // simulated machine's format of little endian.  These end up
@@ -326,11 +327,17 @@ int Machine::AllocatePhysicalPage(int vpn){
 		/* write back */
 		if(T&&pageTable[PhysicalPageTable[ppn].VirtualPageNumber].dirty){
 			printf("write out ");
+			#ifdef DiskImage
 			T->space->DiskAddrSpace->WriteAt(
 				&(machine->mainMemory[ppn*PageSize]),
 				PageSize,
 				PhysicalPageTable[ppn].VirtualPageNumber*PageSize
 			);
+			#else
+			memcpy(&(T->space->vSpace[ppn*PageSize]),
+				&(machine->mainMemory[ppn*PageSize]),
+				PageSize);
+			#endif
 		}
 
 		/* update tlb*/
@@ -351,11 +358,18 @@ int Machine::AllocatePhysicalPage(int vpn){
 
 	printf("read in \n");
 	memset(&mainMemory[ppn*PageSize],0,PageSize);
+	#ifdef DiskImage
 	currentThread->space->DiskAddrSpace->ReadAt(
 		&(machine->mainMemory[ppn*PageSize]),
 		PageSize,
 		vpn*PageSize
 	);
+	#else
+	memcpy(
+			&(machine->mainMemory[ppn*PageSize]),
+			&(currentThread->space->vSpace[vpn*PageSize]),
+			PageSize);
+	#endif
 	
 
 	/*update the global physical page table*/

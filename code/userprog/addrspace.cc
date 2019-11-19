@@ -114,7 +114,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
 		pageTable[i].valid = false;
 		pageTable[i].dirty = false;
     }
-
+#ifdef DiskImage
 	// create the disk addrspace image on the disk
 	char DiskFileName[16];
 	int tid=currentThread->getTid();
@@ -146,6 +146,15 @@ AddrSpace::AddrSpace(OpenFile *executable)
 		DiskAddrSpace->	WriteAt(&tmp[noffH.code.size],noffH.initData.size, noffH.code.size);
     }
 	delete tmp;
+#else
+	vSpace=new char[size];
+	if(noffH.code.size>0){
+		executable->ReadAt(&vSpace[0],noffH.code.size,noffH.code.inFileAddr);
+	}
+	if(noffH.initData.size>0){
+		executable->ReadAt(&vSpace[noffH.initData.virtualAddr],noffH.initData.size,noffH.initData.inFileAddr);
+	}
+#endif
 }
 
 //----------------------------------------------------------------------
