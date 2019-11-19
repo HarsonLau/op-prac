@@ -350,14 +350,18 @@ int Machine::AllocatePhysicalPage(int vpn){
 
 		/* update tlb*/
 		for(int i=0;i<TLBSize;i++){
-			if(tlb[i].physicalPage==ppn)
+			if(tlb[i].valid&&tlb[i].physicalPage==ppn){
 				tlb[i].valid=false;
+				tlb[i].dirty=false;
+			}
+				
 		}
 
 		/* update pagetable (hardware and pcb) */
 		for(int i=0;i<pageTableSize;i++){
 			if(pageTable[i].physicalPage==ppn&& pageTable[i].valid){
 				pageTable[i].valid=false;
+				pageTable[i].dirty=false;
 				if(T){
 					T->space->pageTable[i].valid=false;
 					T->space->pageTable[i].dirty=false;
@@ -391,7 +395,7 @@ int Machine::AllocatePhysicalPage(int vpn){
 	/*modify the page table in the hardware*/
 	pageTable[vpn].valid		=true;
 	pageTable[vpn].dirty		=false;
-	pageTable[vpn].use		=false;
+	pageTable[vpn].use			=false;
 	pageTable[vpn].readOnly		=false;
 	pageTable[vpn].physicalPage	=ppn;
 	pageTable[vpn].virtualPage	=vpn;
