@@ -208,7 +208,7 @@ void AddrSpace::SaveState()
 {
 	for(int i=0;i<TLBSize;i++){
 		if(machine->tlb[i].valid){
-			machine->pageTable[i]=machine->tlb[i];
+			machine->pageTable[machine->tlb[i].virtualPage]=machine->tlb[i];
 			machine->tlb[i].valid=false;
 		}
 	}
@@ -239,10 +239,10 @@ void AddrSpace::RestoreState()
 {
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
-for(int i=0;i<TLBSize;i++){
-	if(machine->tlb[i].valid){
-		machine->pageTable[i]=machine->tlb[i];
-		machine->tlb[i].valid=false;
+	for(int i=0;i<TLBSize;i++){
+		if(machine->tlb[i].valid){
+			machine->pageTable[machine->tlb[i].virtualPage]=machine->tlb[i];
+			machine->tlb[i].valid=false;
+		}
 	}
-}
 }
