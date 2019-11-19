@@ -52,7 +52,6 @@ void
 ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
-
     if ((which == SyscallException) && (type == SC_Halt)) {
 	DEBUG('a', "Shutdown, initiated by user program.\n");
    	interrupt->Halt();
@@ -67,7 +66,9 @@ ExceptionHandler(ExceptionType which)
 		machine->LRU_TLB(virtAddr);
 	}
         else if(which==IllegalInstrException){
-                printf("Ilegal Instruction exception\n");
+		int virtAddr=machine->registers[BadVAddrReg];
+                int vpn = (unsigned) virtAddr / PageSize;
+                printf("Ilegal Instruction exception,vpn=%d\n",vpn);
                 ASSERT(FALSE);
         }
 	else {

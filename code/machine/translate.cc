@@ -215,18 +215,8 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     vpn = (unsigned) virtAddr / PageSize;
     offset = (unsigned) virtAddr % PageSize;
     
-    if (tlb == NULL) {		// => page table => vpn is index into table
-	if (vpn >= pageTableSize) {
-	    DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-			virtAddr, pageTableSize);
-	    return AddressErrorException;
-	} else if (!pageTable[vpn].valid) {
-	    DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-			virtAddr, pageTableSize);
-	    return PageFaultException;
-	}
-	entry = &pageTable[vpn];
-    } else {
+
+  
         for (entry = NULL, i = 0; i < TLBSize; i++)
     	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
 		entry = &tlb[i];			// FOUND!
@@ -238,7 +228,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 						// the page may be in memory,
 						// but not in the TLB
 	}
-    }
+    
 
     if (entry->readOnly && writing) {	// trying to write to a read-only page
 	DEBUG('a', "%d mapped read-only at %d in TLB!\n", virtAddr, i);
@@ -253,8 +243,10 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	return BusErrorException;
     }
     entry->use = TRUE;		// set the use, dirty bits
-    if (writing)
-		entry->dirty = TRUE;
+    if (writing){
+        entry->dirty = true;
+        pageTable[vpn].dirty=true;
+    }
 	entry->LastHitTime=stats->totalTicks;
 	PhysicalPageTable[pageFrame].LastHitTime=stats->totalTicks;
     *physAddr = pageFrame * PageSize + offset;
@@ -288,7 +280,8 @@ int Machine::FIFO_TLB(int virtAddr){
 }
 
 int Machine::LRU_TLB(int virtAddr){
-    int vpn = (unsigned) virtAddr / PageSize;
+        //printf("LRU TLB callled for vpn %d\n",virtAddr);
+        int vpn = (unsigned) virtAddr / PageSize;
 	TranslationEntry *entry=&tlb[0];
 	for(int i=0;i<TLBSize;i++){
 		if (!tlb[i].valid){
@@ -320,8 +313,8 @@ int Machine::AllocatePhysicalPage(int vpn){
 		if(PhysicalPageTable[i].LastHitTime<PhysicalPageTable[ppn].LastHitTime)
 			ppn=i;
 	}
-
 	int oldVpn=PhysicalPageTable[ppn].VirtualPageNumber;
+        //printf("oldVpn %d ppn %d for vpn %d \n",oldVpn,ppn,vpn);
 	if(PhysicalPageTable[ppn].valid
 	&&pageTable[oldVpn].dirty
 	&&pageTable[oldVpn].valid){
@@ -335,6 +328,7 @@ int Machine::AllocatePhysicalPage(int vpn){
 		* In a word ,we do not need to consider these two situation accordingly
 		*/
 		if(T&&T->getTid()!=currentThread->getTid()){
+                        printf("swap between a thread\n");
 			T->space->DiskAddrSpace->WriteAt(
 				&mainMemory[ppn*PageSize],
 				PageSize,
@@ -347,12 +341,20 @@ int Machine::AllocatePhysicalPage(int vpn){
 			T->space->pageTable[oldVpn].dirty=false;
 		}
                 else if(T){
+                        //printf("swap within a thread\n");
                         currentThread->space->DiskAddrSpace->WriteAt(
 				&mainMemory[ppn*PageSize],
 				PageSize,
 				oldVpn*PageSize
                         );
-                        pageTable[oldVpn].valid=false;
+                }
+	}
+
+        pageTable[oldVpn].valid=false;
+        pageTable[oldVpn].dirty=false;
+        for(int i=0;i<TLBSize;i++){
+                if(tlb[i].virtualPage==oldVpn){
+                        tlb[i].valid=false;
                         pageTable[oldVpn].dirty=false;
                 }
 	}
