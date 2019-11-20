@@ -149,6 +149,7 @@ class Machine {
 	int  FIFO_TLB(int virtAddr);
 	int  AllocatePhysicalPage(int vpn);
 	void TLB_PageTable_check();
+	void Save();
 	
 	int	 TLBHit;
 	int  TLBMiss;
