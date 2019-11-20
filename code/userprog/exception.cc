@@ -64,6 +64,7 @@ ExceptionHandler(ExceptionType which)
 	else if(which==PageFaultException){
 		int virtAddr=machine->ReadRegister(BadVAddrReg);
 		machine->LRU_TLB(virtAddr);
+//		machine->FIFO_TLB(virtAddr);
 	}
 	else if(which==IllegalInstrException){
 	int virtAddr=machine->registers[BadVAddrReg];

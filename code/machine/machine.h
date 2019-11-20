@@ -151,6 +151,7 @@ class Machine {
 	void TLB_PageTable_check();
 	int  Invert_LRU_TLB(int virtAddr);
 	int  InvertedAllocatePage(int vpn);
+	void Save();
 	
 	int	 TLBHit;
 	int  TLBMiss;

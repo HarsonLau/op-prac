@@ -212,8 +212,8 @@ void AddrSpace::SaveState()
 			machine->tlb[i].valid=false;
 		}
 	}
-	pageTable=machine->pageTable;
-	numPages=machine->pageTableSize;
+	machine->Save();
+	//printf("SaveState\n");
 }
 
 //----------------------------------------------------------------------
@@ -225,6 +225,8 @@ void AddrSpace::SaveState()
 //----------------------------------------------------------------------
 void AddrSpace::RestoreState() 
 {
+	//printf("Restore State begins\n");
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
+	//printf("Restore State finished\n");
 }

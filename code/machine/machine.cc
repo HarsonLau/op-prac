@@ -103,6 +103,7 @@ Machine::RaiseException(ExceptionType which, int badVAddr)
     registers[BadVAddrReg] = badVAddr;
     DelayedLoad(0, 0);			// finish anything in progress
     interrupt->setStatus(SystemMode);
+    interrupt->OneTick();
     ExceptionHandler(which);		// interrupts are enabled at this point
     interrupt->setStatus(UserMode);
 }
@@ -205,4 +206,35 @@ void Machine::WriteRegister(int num, int value)
 	// DEBUG('m', "WriteRegister %d, value %d\n", num, value);
 	registers[num] = value;
     }
-
+void Machine::Save(){
+    for(int ppn=0;ppn<NumPhysPages;ppn++){
+        if(!PhysicalPageTable[ppn].valid)
+            continue;
+		Thread *T=PhysicalPageTable[ppn].OwnerThread;
+		/* write back */
+		if(T/*  &&PhysicalPageTable[ppn].dirty /* &&pageTable[PhysicalPageTable[ppn].VirtualPageNumber].dirty*/){
+			//printf("   Swap out \n");
+			#ifdef DiskImage
+			T->space->DiskAddrSpace->WriteAt(
+				&(machine->mainMemory[ppn*PageSize]),
+				PageSize,
+				PhysicalPageTable[ppn].VirtualPageNumber*PageSize
+			);
+			#else
+			memcpy(&(T->space->vSpace[PhysicalPageTable[ppn].VirtualPageNumber*PageSize]),
+				&(machine->mainMemory[ppn*PageSize]),
+				PageSize);
+			#endif
+		}
+        PhysicalPageTable[ppn].valid=false;
+        PhysicalPageTable[ppn].dirty=false;
+    }
+    for(int i=0;i<pageTableSize;i++){
+        pageTable[i].valid=false;
+        pageTable[i].dirty=false;
+    }
+    for(int i=0;i<TLBSize;i++){
+        tlb[i].dirty=false;
+        tlb[i].valid=false;
+    }
+}

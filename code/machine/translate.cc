@@ -423,7 +423,7 @@ int Machine::InvertedAllocatePage(int vpn){
 	return ppn;
 }
 int Machine::AllocatePhysicalPage(int vpn){
-	TLB_PageTable_check();
+	//TLB_PageTable_check();
 
 	/*choose a physical page*/
 	int ppn=0;
@@ -455,8 +455,11 @@ int Machine::AllocatePhysicalPage(int vpn){
 	 */
 	if(PhysicalPageTable[ppn].valid){
 		Thread *T=PhysicalPageTable[ppn].OwnerThread;
+		if(T){
+			T->space->pageTable[OldVpn].valid=false;
+		}
 		/* write back */
-		if(T/*  &&PhysicalPageTable[ppn].dirty /* &&pageTable[PhysicalPageTable[ppn].VirtualPageNumber].dirty*/){
+		if(T /* &&PhysicalPageTable[ppn].dirty /* &&pageTable[PhysicalPageTable[ppn].VirtualPageNumber].dirty*/){
 			//printf("   Swap out \n");
 			#ifdef DiskImage
 			T->space->DiskAddrSpace->WriteAt(
@@ -469,25 +472,19 @@ int Machine::AllocatePhysicalPage(int vpn){
 				&(machine->mainMemory[ppn*PageSize]),
 				PageSize);
 			#endif
+			pageTable[OldVpn].dirty=false;
+			T->space->pageTable[OldVpn].dirty=false;
+			PhysicalPageTable[ppn].dirty=false;
 		}
+		pageTable[OldVpn].valid=false;
 
 		/* update tlb*/
 		for(int i=0;i<TLBSize;i++){
-			if(tlb[i].valid&&tlb[i].physicalPage==ppn){
+			if(tlb[i].valid&&tlb[i].physicalPage==ppn&&tlb[i].virtualPage==OldVpn){
 				tlb[i].valid=false;
 			}
-				
 		}
 
-		/* update pagetable (hardware and pcb) */
-		for(int i=0;i<pageTableSize;i++){
-			if(pageTable[i].physicalPage==ppn&& pageTable[i].valid){
-				pageTable[i].valid=false;
-				if(T){
-					T->space->pageTable[i].valid=false;
-				}
-			}
-		}
 	}
 
 	#ifdef DiskImage
@@ -506,13 +503,13 @@ int Machine::AllocatePhysicalPage(int vpn){
 	/*update the global physical page table*/
 	PhysicalPageTable[ppn].LastHitTime		=stats->totalTicks;
 	PhysicalPageTable[ppn].valid			=true;
-	PhysicalPageTable[ppn].dirty			=false;
+	//PhysicalPageTable[ppn].dirty			=false;
 	PhysicalPageTable[ppn].OwnerThread		=currentThread;
 	PhysicalPageTable[ppn].VirtualPageNumber        =vpn;
 
 	/*modify the page table in the hardware*/
 	pageTable[vpn].valid		=true;
-	pageTable[vpn].dirty		=false;
+	//pageTable[vpn].dirty		=false;
 	pageTable[vpn].use		=false;
 	pageTable[vpn].readOnly		=false;
 	pageTable[vpn].physicalPage	=ppn;
@@ -520,7 +517,7 @@ int Machine::AllocatePhysicalPage(int vpn){
 	pageTable[vpn].InTime		=stats->totalTicks;
 	pageTable[vpn].LastHitTime	=stats->totalTicks;
 
-	TLB_PageTable_check();
+	//TLB_PageTable_check();
 	return ppn;
 }
 void Machine::TLB_PageTable_check(){
@@ -538,7 +535,7 @@ void Machine::TLB_PageTable_check(){
 			ASSERT(PhysicalPageTable[pageTable[i].physicalPage].VirtualPageNumber==i);
 		}
 	}
-
+/* 
 	for(int i=0;i<NumPhysPages;i++){
 		if(PhysicalPageTable[i].valid){
 			ASSERT(pageTable[PhysicalPageTable[i].VirtualPageNumber].valid);
@@ -546,4 +543,5 @@ void Machine::TLB_PageTable_check(){
 			ASSERT(pageTable[PhysicalPageTable[i].VirtualPageNumber].dirty==PhysicalPageTable[i].dirty);
 		}
 	}
+*/
 }
