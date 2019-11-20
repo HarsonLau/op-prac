@@ -65,12 +65,12 @@ ExceptionHandler(ExceptionType which)
 		int virtAddr=machine->ReadRegister(BadVAddrReg);
 		machine->LRU_TLB(virtAddr);
 	}
-        else if(which==IllegalInstrException){
-		int virtAddr=machine->registers[BadVAddrReg];
-                int vpn = (unsigned) virtAddr / PageSize;
-                printf("Ilegal Instruction exception,vpn=%d\n",vpn);
-                ASSERT(FALSE);
-        }
+	else if(which==IllegalInstrException){
+	int virtAddr=machine->registers[BadVAddrReg];
+			int vpn = (unsigned) virtAddr / PageSize;
+			printf("Ilegal Instruction exception,vpn=%d\n",vpn);
+			ASSERT(FALSE);
+	}
 	else {
 		printf("Unexpected user mode exception %d %d\n", which, type);
 		ASSERT(FALSE);

@@ -9,7 +9,7 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
-#define SCHED_PRIO
+#define SCHED_SLICE
 #include "copyright.h"
 #include "list.h"
 #include "thread.h"

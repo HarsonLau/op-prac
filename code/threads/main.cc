@@ -63,6 +63,7 @@ extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
+extern void TestMultiThread();
 //----------------------------------------------------------------------
 // main
 // 	Bootstrap the operating system kernel.  
@@ -117,7 +118,11 @@ main(int argc, char **argv)
 				ASSERT(argc > 1);
 					StartProcess(*(argv + 1));
 					argCount = 2;
-				} else if (!strcmp(*argv, "-c")) {      // test the console
+				} 
+				else if(!strcmp(*argv, "-TMT")){	// Test Multithread
+					TestMultiThread();
+				}
+				else if (!strcmp(*argv, "-c")) {      // test the console
 				if (argc == 1)
 					ConsoleTest(NULL, NULL);
 				else {

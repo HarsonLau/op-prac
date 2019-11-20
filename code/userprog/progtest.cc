@@ -43,6 +43,41 @@ StartProcess(char *filename)
 					// by doing the syscall "exit"
 }
 
+//----------------------------------------------------------------------
+// StartTestProcess
+// 	Run a user program.  Open the executable, load it into
+//	memory, and jump to it.
+//----------------------------------------------------------------------
+void
+StartTestProcess( int x)
+{
+	char filename[16] ="../test/sort";
+    OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+
+    if (executable == NULL) {
+	printf("Unable to open file %s\n", filename);
+	return;
+    }
+    space = new AddrSpace(executable);    
+    currentThread->space = space;
+
+    delete executable;			// close file
+
+    space->InitRegisters();		// set the initial register values
+    space->RestoreState();		// load page table register
+
+    machine->Run();			// jump to the user progam
+    ASSERT(FALSE);			// machine->Run never returns;
+					// the address space exits
+					// by doing the syscall "exit"
+}
+void TestMultiThread(){
+	Thread * T1=new Thread("test thread 1");
+	Thread * T2=new Thread("test thread 2");
+	T1->Fork(StartTestProcess,(void *)T1->getTid());
+	T2->Fork(StartTestProcess,(void *)T2->getTid());
+}
 // Data structures needed for the console test.  Threads making
 // I/O requests wait on a Semaphore to delay until the I/O completes.
 static Console *console;
