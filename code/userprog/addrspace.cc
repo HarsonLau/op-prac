@@ -212,7 +212,7 @@ void AddrSpace::SaveState()
 			machine->tlb[i].valid=false;
 		}
 	}
-	machine->Save();
+	//machine->Save();
 	//printf("SaveState\n");
 }
 

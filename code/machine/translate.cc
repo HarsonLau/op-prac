@@ -361,7 +361,7 @@ int Machine::InvertedAllocatePage(int vpn){
 	if(PhysicalPageTable[ppn].valid){
 		Thread *T=PhysicalPageTable[ppn].OwnerThread;
 		/* write back */
-		if(T/*  &&PhysicalPageTable[ppn].dirty /* &&pageTable[PhysicalPageTable[ppn].VirtualPageNumber].dirty*/){
+		if(T&&PhysicalPageTable[ppn].dirty /* &&pageTable[PhysicalPageTable[ppn].VirtualPageNumber].dirty*/){
 			//printf("   Swap out \n");
 			#ifdef DiskImage
 			T->space->DiskAddrSpace->WriteAt(
