@@ -158,11 +158,11 @@ Machine::WriteMem(int addr, int size, int value)
 	machine->RaiseException(exception, addr);
         if(exception!=PageFaultException)
                 return false;
-        exception = Translate(addr, &physicalAddress, size, FALSE);
+        exception = Translate(addr, &physicalAddress, size, true);
         if (exception != NoException) {
                 machine->RaiseException(exception, addr);
         }
-        exception = Translate(addr, &physicalAddress, size, FALSE);
+        exception = Translate(addr, &physicalAddress, size, true);
         if (exception != NoException) {
                 machine->RaiseException(exception, addr);
 				return false;
@@ -257,7 +257,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     if (writing){
         entry->dirty = true;
         pageTable[vpn].dirty=true;
-	PhysicalPageTable[pageFrame].dirty=true;
+		PhysicalPageTable[pageFrame].dirty=true;
     }
 	entry->LastHitTime=stats->totalTicks;
 	PhysicalPageTable[pageFrame].LastHitTime=stats->totalTicks;
@@ -314,6 +314,113 @@ int Machine::LRU_TLB(int virtAddr){
 	}
 		entry->InTime=stats->totalTicks;
 	return 0;
+}
+int Machine::Invert_LRU_TLB(int virtAddr){
+    unsigned int vpn = (unsigned) virtAddr / PageSize;
+	TranslationEntry *entry=&tlb[0];
+	for(int i=0;i<TLBSize;i++){
+		if (!tlb[i].valid){
+			entry=&tlb[i];
+			break;
+		}
+		else if(tlb[i].LastHitTime<entry->LastHitTime)
+			entry=&tlb[i];
+	}
+	if(entry->valid){
+		pageTable[entry->physicalPage]=*entry;
+	}
+	for(int i=0;i<pageTableSize;i++){
+		if(pageTable[i].valid&&pageTable[i].virtualPage==vpn){
+			*entry=pageTable[i];
+			entry->InTime=stats->totalTicks;
+			return 0;
+		}
+	}
+	InvertedAllocatePage(vpn);
+	for(int i=0;i<pageTableSize;i++){
+		if(pageTable[i].valid&&pageTable[i].virtualPage==vpn){
+			*entry=pageTable[i];
+			 entry->InTime=stats->totalTicks;
+			return 0;
+		}
+	}
+	return 0;
+}
+int Machine::InvertedAllocatePage(int vpn){
+	//choose a physical page 
+	int ppn=0;
+	for(int i=0;i<NumPhysPages;i++){
+		if(!PhysicalPageTable[i].valid){
+			ppn=i;
+			break;
+		}
+		if(PhysicalPageTable[i].LastHitTime<PhysicalPageTable[ppn].LastHitTime)
+			ppn=i;
+	}
+	int OldVpn=PhysicalPageTable[ppn].VirtualPageNumber;
+	if(PhysicalPageTable[ppn].valid){
+		Thread *T=PhysicalPageTable[ppn].OwnerThread;
+		/* write back */
+		if(T/*  &&PhysicalPageTable[ppn].dirty /* &&pageTable[PhysicalPageTable[ppn].VirtualPageNumber].dirty*/){
+			//printf("   Swap out \n");
+			#ifdef DiskImage
+			T->space->DiskAddrSpace->WriteAt(
+				&(machine->mainMemory[ppn*PageSize]),
+				PageSize,
+				PhysicalPageTable[ppn].VirtualPageNumber*PageSize
+			);
+			#else
+			memcpy(&(T->space->vSpace[PhysicalPageTable[ppn].VirtualPageNumber*PageSize]),
+				&(machine->mainMemory[ppn*PageSize]),
+				PageSize);
+			#endif
+		}
+
+		/* update tlb*/
+		for(int i=0;i<TLBSize;i++){
+			if(tlb[i].valid&&tlb[i].physicalPage==ppn){
+				tlb[i].valid=false;
+			}
+		}
+
+		/* update pagetable (hardware and pcb) */
+		for(int i=0;i<pageTableSize;i++){
+			if(pageTable[i].physicalPage==ppn&& pageTable[i].valid){
+				pageTable[i].valid=false;
+				if(T){
+					T->space->pageTable[i].valid=false;
+				}
+			}
+		}
+	}
+
+	#ifdef DiskImage
+	currentThread->space->DiskAddrSpace->ReadAt(
+		&(machine->mainMemory[ppn*PageSize]),
+		PageSize,
+		vpn*PageSize
+	);
+	#else
+	memcpy(&(machine->mainMemory[ppn*PageSize]),
+			&(currentThread->space->vSpace[vpn*PageSize]),
+			PageSize
+			);
+	#endif
+	/*update the global physical page table*/
+	PhysicalPageTable[ppn].LastHitTime		=stats->totalTicks;
+	PhysicalPageTable[ppn].valid			=true;
+	PhysicalPageTable[ppn].dirty			=false;
+	PhysicalPageTable[ppn].OwnerThread		=currentThread;
+	PhysicalPageTable[ppn].VirtualPageNumber        =vpn;
+	pageTable[ppn].valid		=true;
+	pageTable[ppn].dirty		=false;
+	pageTable[ppn].use			=false;
+	pageTable[ppn].readOnly		=false;
+	pageTable[ppn].physicalPage	=ppn;
+	pageTable[ppn].virtualPage	=vpn;
+	pageTable[ppn].InTime		=stats->totalTicks;
+	pageTable[ppn].LastHitTime	=stats->totalTicks;
+	return ppn;
 }
 int Machine::AllocatePhysicalPage(int vpn){
 	TLB_PageTable_check();

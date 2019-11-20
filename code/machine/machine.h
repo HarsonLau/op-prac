@@ -149,6 +149,8 @@ class Machine {
 	int  FIFO_TLB(int virtAddr);
 	int  AllocatePhysicalPage(int vpn);
 	void TLB_PageTable_check();
+	int  Invert_LRU_TLB(int virtAddr);
+	int  InvertedAllocatePage(int vpn);
 	
 	int	 TLBHit;
 	int  TLBMiss;
