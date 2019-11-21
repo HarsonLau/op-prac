@@ -18,7 +18,7 @@ main()
 
     /* first initialize the array, in reverse sorted order */
     for (i = 0; i < 1024; i++)		
-        A[i] = 1024 - i;
+        A[i] = 1023 - i;
 
     /* then sort! */
     for (i = 0; i < 1023; i++)
