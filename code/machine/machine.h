@@ -181,6 +181,8 @@ class Machine {
 
     TranslationEntry *pageTable;
     unsigned int pageTableSize;
+	int LRU_TLB(int virtAddr);
+	int Allocate(int vpn);
 
   private:
     bool singleStep;		// drop back into the debugger after each

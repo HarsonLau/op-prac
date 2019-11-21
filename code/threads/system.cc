@@ -31,6 +31,7 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
+PhysicalPageEntry* PhysicalPageTable;
 #endif
 
 #ifdef NETWORK
@@ -113,6 +114,14 @@ Initialize(int argc, char **argv)
         #ifdef USER_PROGRAM
             if (!strcmp(*argv, "-s"))
                 debugUserProg = TRUE;
+			PhysicalPageTable=new PhysicalPageEntry[NumPhysPages];
+			for(int i=0;i<NumPhysPages;i++){
+				PhysicalPageTable[i].valid=false;
+				PhysicalPageTable[i].physicalPage=i;
+				PhysicalPageTable[i].virtualPage=0;
+				PhysicalPageTable[i].owner=NULL;
+				PhysicalPageTable[i].LastHitTime=0;
+			}
         #endif
         #ifdef FILESYS_NEEDED
             if (!strcmp(*argv, "-f"))

@@ -54,10 +54,26 @@ ExceptionHandler(ExceptionType which)
     int type = machine->ReadRegister(2);
 
     if ((which == SyscallException) && (type == SC_Halt)) {
-	DEBUG('a', "Shutdown, initiated by user program.\n");
-   	interrupt->Halt();
-    } else {
-	printf("Unexpected user mode exception %d %d\n", which, type);
-	ASSERT(FALSE);
+		DEBUG('a', "Shutdown, initiated by user program.\n");
+		interrupt->Halt();
+    }
+	else if(which==SyscallException&&(type==SC_Exit)){
+		DEBUG('a', "Exit, initiated by user program.\n");
+        printf("thread finished with code %d\n",machine->ReadRegister(4));
+        currentThread->Finish();
+    }
+	else if(which==PageFaultException){
+		int virtAddr=machine->ReadRegister(BadVAddrReg);
+		//machine->LRU_TLB(virtAddr);
+	}
+	else if(which==IllegalInstrException){
+		int virtAddr=machine->registers[BadVAddrReg];
+		int vpn = (unsigned) virtAddr / PageSize;
+		printf("Ilegal Instruction exception,vpn=%d\n",vpn);
+		ASSERT(FALSE);
+	}
+	 else {
+		printf("Unexpected user mode exception %d %d\n", which, type);
+		ASSERT(FALSE);
     }
 }

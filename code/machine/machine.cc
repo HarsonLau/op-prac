@@ -71,6 +71,14 @@ Machine::Machine(bool debug)
     pageTable = NULL;
 #endif
 
+	pageTable=new TranslationEntry[NumPhysPages];
+	pageTableSize=NumPhysPages;
+	for(int i=0;i<pageTableSize;i++){
+		pageTable[i].valid=pageTable[i].dirty=pageTable[i].readOnly=pageTable[i].use=false;
+		pageTable[i].physicalPage=i;
+		pageTable[i].virtualPage=0;
+		pageTable[i].LastHitTime=0;
+	}
     singleStep = debug;
     CheckEndian();
 }

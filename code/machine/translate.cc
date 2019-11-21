@@ -199,9 +199,6 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	return AddressErrorException;
     }
     
-    // we must have either a TLB or a page table, but not both!
-    ASSERT(tlb == NULL || pageTable == NULL);	
-    ASSERT(tlb != NULL || pageTable != NULL);	
 
 // calculate the virtual page number, and offset within the page,
 // from the virtual address
@@ -221,7 +218,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	entry = &pageTable[vpn];
     } else {
         for (entry = NULL, i = 0; i < TLBSize; i++)
-    	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
+    	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)&&(PhysicalPageTable[tlb[i].physicalPage].owner->getTid()==currentThread->getTid())) {
 		entry = &tlb[i];			// FOUND!
 		break;
 	    }
@@ -248,8 +245,83 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     entry->use = TRUE;		// set the use, dirty bits
     if (writing)
 	entry->dirty = TRUE;
+	pageTable[pageFrame].LastHitTime=stats->totalTicks;
+	PhysicalPageTable[pageFrame].LastHitTime=stats->totalTicks;
     *physAddr = pageFrame * PageSize + offset;
     ASSERT((*physAddr >= 0) && ((*physAddr + size) <= MemorySize));
     DEBUG('a', "phys addr = 0x%x\n", *physAddr);
     return NoException;
+}
+int Machine::LRU_TLB(int virtAddr){
+	int vpn = (unsigned) virtAddr / PageSize;
+	TranslationEntry *entry=&tlb[0];
+	for(int i=0;i<TLBSize;i++){
+		if (!tlb[i].valid){
+			entry=&tlb[i];
+			break;
+		}
+		else if(tlb[i].LastHitTime<entry->LastHitTime)
+			entry=&tlb[i];
+	}
+
+	if(entry->valid)
+		pageTable[entry->physicalPage]=*entry;
+
+	for(int i=0;i<pageTableSize;i++){
+		if(pageTable[i].valid&&pageTable[i].virtualPage==vpn){
+			if(PhysicalPageTable[i].owner->getTid()==currentThread->getTid()){
+				*entry=pageTable[i];
+				return 0;
+			}
+		}
+	}
+	*entry=pageTable[Allocate(vpn)];
+	return 0;
+}
+int Machine::Allocate(int vpn){
+	int ppn=0;
+	for(int i=0;i<NumPhysPages;i++){
+		if(!PhysicalPageTable[i].valid){
+			ppn=i;
+			break;
+		}
+		if(PhysicalPageTable[i].LastHitTime<PhysicalPageTable[ppn].LastHitTime)
+			ppn=i;
+	}
+
+	int OldVpn=PhysicalPageTable[ppn].virtualPage;
+	if(PhysicalPageTable[ppn].valid){
+		Thread*T=PhysicalPageTable[ppn].owner;
+		if(T&&pageTable[ppn].dirty){
+			memcpy(&(T->space->vSpace[PhysicalPageTable[ppn].virtualPage*PageSize]),
+				&(machine->mainMemory[ppn*PageSize]),
+				PageSize);
+		}
+		pageTable[ppn].dirty=false;
+	}
+
+	pageTable[ppn].valid=false;
+	for(int i=0;i<TLBSize;i++){
+		if(tlb[i].valid&&tlb[i].physicalPage==ppn)
+			tlb[i].valid=false;
+	}
+
+	memcpy(&(machine->mainMemory[ppn*PageSize]),
+			&(currentThread->space->vSpace[vpn*PageSize]),
+			PageSize
+			);
+
+	PhysicalPageTable[ppn].valid=true;
+	PhysicalPageTable[ppn].physicalPage=ppn;
+	PhysicalPageTable[ppn].virtualPage=vpn;
+	PhysicalPageTable[ppn].owner=currentThread;
+
+	pageTable[ppn].valid=true;
+	pageTable[ppn].readOnly=false;
+	pageTable[ppn].use=false;
+	pageTable[ppn].physicalPage=ppn;
+	pageTable[ppn].virtualPage=vpn;
+	pageTable[ppn].dirty=false;
+
+	return ppn;
 }
