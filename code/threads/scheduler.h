@@ -9,7 +9,6 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
-#define SCHED_PRIO
 #include "copyright.h"
 #include "list.h"
 #include "thread.h"
@@ -33,9 +32,7 @@ class Scheduler {
     List *readyList;  		// queue of threads that are ready to run,
 				// but not running
 
-#ifdef SCHED_SLICE
-        int LastSwitchTick;
-#endif
+	int LastSwitchTick;
 
 };
 
