@@ -82,9 +82,15 @@ Scheduler::ReadyToRun (Thread *thread)
 Thread *
 Scheduler::FindNextToRun ()
 {
+		int Interval=stats->totalTicks-LastSwitchTick;
+		if(Interval<SliceTicks){
+			DEBUG('t',"Switching too often , try later\n");
+			return NULL;
+		}
         if(readyList->IsEmpty())
                 return NULL;
 
+		FlushPriority();
         Thread * candidate=(Thread *)readyList->Remove();
         if(currentThread->getStatus()==BLOCKED)                 
                 return candidate;
@@ -129,6 +135,7 @@ Scheduler::Run (Thread *nextThread)
 
     currentThread = nextThread;		    // switch to the next thread
     currentThread->setStatus(RUNNING);      // nextThread is now running
+	LastSwitchTick=stats->totalTicks;
     
     DEBUG('t', "Switching from thread \"%s\" to thread \"%s\"\n",
 	  oldThread->getName(), nextThread->getName());
@@ -170,4 +177,19 @@ Scheduler::Print()
     printf("\nReady list contents:\n");
     readyList->Mapcar((VoidFunctionPtr) ThreadPrint);
     printf("End of Ready list content\n\n");
+}
+
+void
+Scheduler::FlushPriority()
+{
+    ListElement* ptr;
+    for (ptr = readyList->getFirst(); ptr != NULL; ptr = ptr->next)
+    {
+         Thread* t = (Thread*)ptr->item;
+         int p = t->getPriority() + AdaptPace;
+		 if(p<10)
+		 	p=10;
+         t->setPriority(p);
+         ptr->key += AdaptPace;
+    }
 }

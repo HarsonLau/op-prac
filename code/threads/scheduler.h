@@ -12,7 +12,7 @@
 #include "copyright.h"
 #include "list.h"
 #include "thread.h"
-
+#define AdaptPace -5
 // The following class defines the scheduler/dispatcher abstraction -- 
 // the data structures and operations needed to keep track of which 
 // thread is running, and which threads are ready but not running.
@@ -33,6 +33,7 @@ class Scheduler {
 				// but not running
 
 	int LastSwitchTick;
+	void FlushPriority();
 
 };
 
