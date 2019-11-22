@@ -94,6 +94,10 @@ Machine::ReadMem(int addr, int size, int *value)
     DEBUG('a', "Reading VA 0x%x, size %d\n", addr, size);
     
     exception = Translate(addr, &physicalAddress, size, FALSE);
+    if(exception==PageFaultException){
+	machine->RaiseException(exception, addr);
+	exception = Translate(addr, &physicalAddress, size, FALSE);
+    }
     if (exception != NoException) {
 	machine->RaiseException(exception, addr);
 	return FALSE;
@@ -143,6 +147,10 @@ Machine::WriteMem(int addr, int size, int value)
     DEBUG('a', "Writing VA 0x%x, size %d, value 0x%x\n", addr, size, value);
 
     exception = Translate(addr, &physicalAddress, size, TRUE);
+    if(exception==PageFaultException){
+	machine->RaiseException(exception, addr);
+	exception = Translate(addr, &physicalAddress, size, TRUE);
+    }
     if (exception != NoException) {
 	machine->RaiseException(exception, addr);
 	return FALSE;
@@ -292,7 +300,7 @@ int Machine::Allocate(int vpn){
 	int OldVpn=PhysicalPageTable[ppn].virtualPage;
 	if(PhysicalPageTable[ppn].valid){
 		Thread*T=PhysicalPageTable[ppn].owner;
-		if(T&&pageTable[ppn].dirty){
+		if(T/*&&pageTable[ppn].dirty*/){
 			memcpy(&(T->space->vSpace[PhysicalPageTable[ppn].virtualPage*PageSize]),
 				&(machine->mainMemory[ppn*PageSize]),
 				PageSize);
