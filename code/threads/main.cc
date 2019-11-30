@@ -88,6 +88,7 @@ main(int argc, char **argv)
     (void) Initialize(argc, argv);
     
 	#ifdef THREADS
+		/*
 		for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
 		argCount = 1;
 		switch (argv[0][1]) {
@@ -107,6 +108,7 @@ main(int argc, char **argv)
 		}
 
 		ThreadTest();
+		*/
 	#endif
 
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {

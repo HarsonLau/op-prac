@@ -9,18 +9,18 @@
 # All rights reserved.  See copyright.h for copyright notice and limitation 
 # of liability and disclaimer of warranty provisions.
 
-DEFINES = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS_STUB -DUSE_TLB
-INCPATH = -I../bin -I../filesys -I../userprog -I../threads -I../machine
-HFILES = $(THREAD_H) $(USERPROG_H)
-CFILES = $(THREAD_C) $(USERPROG_C)
-C_OFILES = $(THREAD_O) $(USERPROG_O)
+#DEFINES = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS_STUB -DUSE_TLB
+#INCPATH = -I../bin -I../filesys -I../userprog -I../threads -I../machine
+#HFILES = $(THREAD_H) $(USERPROG_H)
+#CFILES = $(THREAD_C) $(USERPROG_C)
+#C_OFILES = $(THREAD_O) $(USERPROG_O)
 
 # if file sys done first!
-# DEFINES = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS
-# INCPATH = -I../bin -I../filesys -I../userprog -I../threads -I../machine
-# HFILES = $(THREAD_H) $(USERPROG_H) $(FILESYS_H)
-# CFILES = $(THREAD_C) $(USERPROG_C) $(FILESYS_C)
-# C_OFILES = $(THREAD_O) $(USERPROG_O) $(FILESYS_O)
+ DEFINES = -DUSER_PROGRAM -DFILESYS_NEEDED -DFILESYS
+ INCPATH = -I../bin -I../filesys -I../userprog -I../threads -I../machine
+ HFILES = $(THREAD_H) $(USERPROG_H) $(FILESYS_H)
+ CFILES = $(THREAD_C) $(USERPROG_C) $(FILESYS_C)
+ C_OFILES = $(THREAD_O) $(USERPROG_O) $(FILESYS_O)
 
 include ../Makefile.common
 include ../Makefile.dep

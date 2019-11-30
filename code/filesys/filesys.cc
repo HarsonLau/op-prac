@@ -199,6 +199,10 @@ FileSystem::Create(char *name, int initialSize)
             	success = FALSE;	// no space on disk for data
 	    else {	
 	    	success = TRUE;
+		    // set create time , visit time , modify time 
+		hdr->set_create_time();
+		hdr->set_visit_time();
+		hdr->set_modify_time();
 		// everthing worked, flush all changes back to disk
     	    	hdr->WriteBack(sector); 		
     	    	directory->WriteBack(directoryFile);

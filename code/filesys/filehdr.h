@@ -17,7 +17,8 @@
 #include "disk.h"
 #include "bitmap.h"
 
-#define NumDirect 	((SectorSize - 2 * sizeof(int)) / sizeof(int))
+#define FCBEntrySize	(2*sizeof(int)+3*25*sizeof(char))
+#define NumDirect 	((SectorSize - FCBEntrySize) / sizeof(int))
 #define MaxFileSize 	(NumDirect * SectorSize)
 
 // The following class defines the Nachos "file header" (in UNIX terms,  
@@ -55,6 +56,14 @@ class FileHeader {
 					// in bytes
 
     void Print();			// Print the contents of the file.
+
+    char create_time[25];		// The time created
+    char visit_time[25];		// The time of last visit
+    char modify_time[25];		// The time of last modification
+
+    void set_create_time();
+    void set_visit_time();
+    void set_modify_time();
 
   private:
     int numBytes;			// Number of bytes in the file

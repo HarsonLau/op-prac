@@ -121,9 +121,10 @@ Directory::Find(char *name)
 //
 //	"name" -- the name of the file being added
 //	"newSector" -- the disk sector containing the added file's header
+//	"isDir"	-- Specifying whether this file is a directory
 //----------------------------------------------------------------------
 bool
-Directory::Add(char *name, int newSector)
+Directory::Add(char *name, int newSector,bool isDir=false)
 { 
     if (FindIndex(name) != -1)
 	return FALSE;
@@ -133,6 +134,7 @@ Directory::Add(char *name, int newSector)
             table[i].inUse = TRUE;
             strncpy(table[i].name, name, FileNameMaxLen); 
             table[i].sector = newSector;
+	    table[i].isDir=isDir;
         return TRUE;
 	}
     return FALSE;	// no space.  Fix when we have extensible files.

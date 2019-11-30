@@ -26,7 +26,7 @@
 
 #include "system.h"
 #include "filehdr.h"
-
+#include "time.h"
 //----------------------------------------------------------------------
 // FileHeader::Allocate
 // 	Initialize a fresh file header for a newly created file.
@@ -143,5 +143,27 @@ FileHeader::Print()
 	}
         printf("\n"); 
     }
+    printf("create time:%s\n",create_time);
+    printf("last visit time :%s\n",visit_time);
+    printf("last modify time :%s\n",modify_time);
     delete [] data;
+}
+
+void FileHeader::set_create_time(){
+	time_t timep;
+	time(&timep);
+	strncpy(create_time,asctime(gmtime(&timep)),25);
+	create_time[24]='\0';
+}
+void FileHeader::set_visit_time(){
+	time_t timep;
+	time(&timep);
+	strncpy(visit_time,asctime(gmtime(&timep)),25);
+	visit_time[24]='\0';
+}
+void FileHeader::set_modify_time(){
+	time_t timep;
+	time(&timep);
+	strncpy(modify_time,asctime(gmtime(&timep)),25);
+	modify_time[24]='\0';
 }
