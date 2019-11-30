@@ -37,7 +37,6 @@
 //	"freeMap" is the bit map of free disk sectors
 //	"fileSize" is the bit map of free disk sectors
 //----------------------------------------------------------------------
-
 bool
 FileHeader::Allocate(BitMap *freeMap, int fileSize)
 { 
@@ -57,7 +56,6 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 //
 //	"freeMap" is the bit map of free disk sectors
 //----------------------------------------------------------------------
-
 void 
 FileHeader::Deallocate(BitMap *freeMap)
 {
@@ -73,7 +71,6 @@ FileHeader::Deallocate(BitMap *freeMap)
 //
 //	"sector" is the disk sector containing the file header
 //----------------------------------------------------------------------
-
 void
 FileHeader::FetchFrom(int sector)
 {

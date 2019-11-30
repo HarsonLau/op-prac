@@ -59,7 +59,6 @@ Directory::~Directory()
 //
 //	"file" -- file containing the directory contents
 //----------------------------------------------------------------------
-
 void
 Directory::FetchFrom(OpenFile *file)
 {
@@ -86,7 +85,6 @@ Directory::WriteBack(OpenFile *file)
 //
 //	"name" -- the file name to look up
 //----------------------------------------------------------------------
-
 int
 Directory::FindIndex(char *name)
 {
@@ -104,7 +102,6 @@ Directory::FindIndex(char *name)
 //
 //	"name" -- the file name to look up
 //----------------------------------------------------------------------
-
 int
 Directory::Find(char *name)
 {
@@ -125,7 +122,6 @@ Directory::Find(char *name)
 //	"name" -- the name of the file being added
 //	"newSector" -- the disk sector containing the added file's header
 //----------------------------------------------------------------------
-
 bool
 Directory::Add(char *name, int newSector)
 { 
@@ -149,7 +145,6 @@ Directory::Add(char *name, int newSector)
 //
 //	"name" -- the file name to be removed
 //----------------------------------------------------------------------
-
 bool
 Directory::Remove(char *name)
 { 
@@ -165,7 +160,6 @@ Directory::Remove(char *name)
 // Directory::List
 // 	List all the file names in the directory. 
 //----------------------------------------------------------------------
-
 void
 Directory::List()
 {
@@ -179,7 +173,6 @@ Directory::List()
 // 	List all the file names in the directory, their FileHeader locations,
 //	and the contents of each file.  For debugging.
 //----------------------------------------------------------------------
-
 void
 Directory::Print()
 { 

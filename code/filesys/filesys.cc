@@ -76,7 +76,6 @@
 //
 //	"format" -- should we initialize the disk?
 //----------------------------------------------------------------------
-
 FileSystem::FileSystem(bool format)
 { 
     DEBUG('f', "Initializing the file system.\n");
@@ -170,7 +169,6 @@ FileSystem::FileSystem(bool format)
 //	"name" -- name of file to be created
 //	"initialSize" -- size of file to be created
 //----------------------------------------------------------------------
-
 bool
 FileSystem::Create(char *name, int initialSize)
 {

@@ -28,7 +28,6 @@
 //
 // Internal data structures kept public so that Directory operations can
 // access them directly.
-
 class DirectoryEntry {
   public:
     bool inUse;				// Is this directory entry in use?
@@ -47,7 +46,6 @@ class DirectoryEntry {
 // The constructor initializes a directory structure in memory; the
 // FetchFrom/WriteBack operations shuffle the directory information
 // from/to disk. 
-
 class Directory {
   public:
     Directory(int size); 		// Initialize an empty directory

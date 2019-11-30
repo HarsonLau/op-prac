@@ -112,7 +112,6 @@ OpenFile::Write(char *into, int numBytes)
 //	"position" -- the offset within the file of the first byte to be
 //			read/written
 //----------------------------------------------------------------------
-
 int
 OpenFile::ReadAt(char *into, int numBytes, int position)
 {
@@ -189,7 +188,6 @@ OpenFile::WriteAt(char *from, int numBytes, int position)
 // OpenFile::Length
 // 	Return the number of bytes in the file.
 //----------------------------------------------------------------------
-
 int
 OpenFile::Length() 
 { 
