@@ -37,53 +37,54 @@
 //	"freeMap" is the bit map of free disk sectors
 //	"fileSize" is the bit map of free disk sectors
 //----------------------------------------------------------------------
-
 bool
 FileHeader::Allocate(BitMap *freeMap, int fileSize)
 { 
     numBytes = fileSize;
     numSectors  = divRoundUp(fileSize, SectorSize);
+    DEBUG('f',"file size :%d , need %d sectors\n",fileSize,numSectors);
     if (freeMap->NumClear() < numSectors){
 	    DEBUG('f',"Disk space not enough\n");
-		return FALSE;		// not enough space
-
+	return FALSE;		// not enough space
     }
-	setCreateTime();
-	DEBUG('f',"now in fileheader::allocate! filesize %d numBytes %d  numSectors %d createTime %s.\n",fileSize,numBytes, numSectors,createTime);
-	if(numSectors < NumDirect){
-		DEBUG('f',"do not need second index\n");
-    		for (int i = 0; i < numSectors; i++){
-				dataSectors[i] = freeMap->Find();
-		}
+
+	if(fileSize > MaxFileSize){
+		DEBUG('f',"file size > MaxFileSize\n");
+		return false;
 	}
 
-	else{
-		for(int i = 0; i < NumDirect; i++){
+	// if we do not need to use a second index
+	if(numSectors<=NumDirect){
+		DEBUG('f',"do not need second index\n");
+		for (int i = 0; i < numSectors; i++)
 			dataSectors[i] = freeMap->Find();
-			printf("dataSectors %d freemap %d.\n",i,dataSectors[i]);
-		}
-		int leftSectors = numSectors - NumDirect;
-//		printf("leftSectors %d secondDirect %d.\n",leftSectors,SecondDirect);
-//		printf("leftSectors / SecondDirect.%d\n",leftSectors/SecondDirect);
-		int needSecondIndex = (leftSectors/32) + (leftSectors%32+31)/32;
-		printf("need second index %d.\n",needSecondIndex);
-		for(int i = 0; i < needSecondIndex; i++){
-			dataSectors[NumDirect + i] = freeMap->Find();
-			int num;
-			int test = leftSectors - SecondDirect;
-			num = (test > 0) ? SecondDirect : leftSectors;
-			int *sectors = new int[num];
-			for(int j = 0; j < num; j++){
-				sectors[j] = freeMap->Find();
-				printf("second index %d sectors %d freemap %d.\n",i,j,sectors[j]);
+	}
+	else{
+		// first use direct index
+		for (int i = 0; i < NumDirect; i++)
+			dataSectors[i] = freeMap->Find();
+		// calculate the sectors left
+		int sectorsLeft=numSectors-NumDirect;
+		DEBUG('f',"need to put %d sectors in second index \n",sectorsLeft);
+		for(int i=0;sectorsLeft>0;i++){
+			// find a sector to accommodate the sector numbers
+			dataSectors[NumDirect+i]=freeMap->Find();
+			int num1=0;
+			if(sectorsLeft<SecondDirect)
+				num1=sectorsLeft;
+			else 
+				num1=SecondDirect;
+			int *sectors=new int[num1];
+			for(int j=0;j<num1;j++){
+				sectors[j]=freeMap->Find();
+				DEBUG('f',"second index %d ,%d th secotr ,location %d\n",i,j,sectors[j]);
 			}
 			synchDisk->WriteSector(dataSectors[NumDirect+i],(char*)sectors);
 			delete sectors;
-			leftSectors = leftSectors - 32;
+			sectorsLeft-=num1;
 		}
 	}
-
-    return TRUE;
+	return TRUE;
 }
 
 //----------------------------------------------------------------------
@@ -92,40 +93,41 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 //
 //	"freeMap" is the bit map of free disk sectors
 //----------------------------------------------------------------------
-
 void 
 FileHeader::Deallocate(BitMap *freeMap)
 {
-	if(numSectors < NumDirect){
-    	for (int i = 0; i < numSectors; i++) {
+	if(numSectors<=NumDirect){
+		for (int i = 0; i < numSectors; i++) {
 			ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
 			freeMap->Clear((int) dataSectors[i]);
-    	}
+		}
 	}
-
 	else{
-		for(int i = 0; i < NumDirect; i++){
-			ASSERT(freeMap->Test((int) dataSectors[i]));
+		//deallocate direct 
+		for (int i=0;i<NumDirect;i++){
+			ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
 			freeMap->Clear((int) dataSectors[i]);
 		}
-		int leftSectors = numSectors - NumDirect;
-		int needSecondIndex = leftSectors/32 + (31+leftSectors%32)/32;
-		for(int i = 0; i < needSecondIndex; i++){
-			char *sectorTemp = new char[SectorSize];
-			synchDisk->ReadSector(dataSectors[NumDirect+i],sectorTemp);
-			int *sector = (int*)sectorTemp;
-			int num = (leftSectors > 32)?32:leftSectors;
-			for(int j = 0; j < num; j++){
-				ASSERT(freeMap->Test((int) sector[j]));
-				freeMap->Clear((int) sector[j]);
+		//deallocate indirect 
+		int sectorsLeft=numSectors-NumDirect;
+		for(int i=0;sectorsLeft>0;i++){
+			int num1=0;
+			if(sectorsLeft<SecondDirect)
+				num1=sectorsLeft;
+			else 
+				num1=SecondDirect;
+			int * sectors=new int[num1];
+			synchDisk->ReadSector(dataSectors[NumDirect+i],(char *)sectors);
+			for (int j=0;j<num1;j++){
+				ASSERT(freeMap->Test(sectors[j]));
+				freeMap->Clear(sectors[j]);
 			}
-			delete sector;
-			leftSectors -= num;
-			ASSERT(freeMap->Test((int) dataSectors[NumDirect+i]));
-			freeMap->Clear((int) dataSectors[NumDirect+i]);
+			delete sectors;
+			sectorsLeft-=num1;
+			ASSERT(freeMap->Test(dataSectors[NumDirect+i]));
+			freeMap->Clear(dataSectors[NumDirect+i]);	
 		}
 	}
-
 }
 
 //----------------------------------------------------------------------
@@ -134,7 +136,6 @@ FileHeader::Deallocate(BitMap *freeMap)
 //
 //	"sector" is the disk sector containing the file header
 //----------------------------------------------------------------------
-
 void
 FileHeader::FetchFrom(int sector)
 {
@@ -151,7 +152,6 @@ FileHeader::FetchFrom(int sector)
 void
 FileHeader::WriteBack(int sector)
 {
-//	printf("now in fileheader::writeback! theSector %d.\n",sector);
     synchDisk->WriteSector(sector, (char *)this); 
 }
 
@@ -164,27 +164,23 @@ FileHeader::WriteBack(int sector)
 //
 //	"offset" is the location within the file of the byte in question
 //----------------------------------------------------------------------
-
 int
 FileHeader::ByteToSector(int offset)
 {
 	int sectorOffset = offset / SectorSize;
 	if(sectorOffset < NumDirect)
 	    return(dataSectors[offset / SectorSize]);
-
-	else{
-		int leftSector = sectorOffset - NumDirect;
-		int index = (leftSector)/32;
-		char *sectorTemp = new char[SectorSize];
-		synchDisk->ReadSector(dataSectors[NumDirect+index],sectorTemp);
-		int *sector = (int*)sectorTemp;
-		int indexOffset = sectorOffset - NumDirect - index*32;
-		int returnValue = sector[indexOffset];
-		delete sector;
-
-		return returnValue;
+	else
+	{
+		int sectorsLeft=sectorOffset-NumDirect;
+		int secondIndex=sectorsLeft/SecondDirect;
+		int *sectors=new int[SecondDirect];
+		synchDisk->ReadSector(dataSectors[NumDirect+secondIndex],(char*)sectors);
+		int indexOffset=sectorOffset-NumDirect-secondIndex*SecondDirect;
+		int res=sectors[indexOffset];
+		delete sectors;
+		return res;
 	}
-
 }
 
 //----------------------------------------------------------------------
@@ -211,8 +207,6 @@ FileHeader::Print()
     char *data = new char[SectorSize];
 
     printf("FileHeader contents.  File size: %d.  File blocks:\n", numBytes);
-//	printf("theSctor %d type %s.\n",theSector,type);
-	printf("createTime %s\nlastReadTime %s\nlastWriteTime %s\n",createTime,lastReadTime,lastWriteTime);
     for (i = 0; i < numSectors; i++)
 	printf("%d ", dataSectors[i]);
     printf("\nFile contents:\n");
@@ -226,158 +220,27 @@ FileHeader::Print()
 	}
         printf("\n"); 
     }
+    printf("create time:%s\n",create_time);
+    printf("last visit time :%s\n",visit_time);
+    printf("last modify time :%s\n",modify_time);
     delete [] data;
 }
 
-void
-FileHeader::setCreateTime()
-{
-
-	time_t rawtime;
-	struct tm *timeinfo;
-
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-	char *temp = asctime(timeinfo);
-	strncpy(createTime,temp,24);
-
+void FileHeader::set_create_time(){
+	time_t timep;
+	time(&timep);
+	strncpy(create_time,asctime(gmtime(&timep)),25);
+	create_time[24]='\0';
 }
-
-void
-FileHeader::setLastReadTime()
-{
-
-	time_t rawtime;
-	struct tm *timeinfo;
-
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-	char *temp = asctime(timeinfo);
-	strncpy(lastReadTime,temp,24);
-
-	
+void FileHeader::set_visit_time(){
+	time_t timep;
+	time(&timep);
+	strncpy(visit_time,asctime(gmtime(&timep)),25);
+	visit_time[24]='\0';
 }
-void
-FileHeader::setLastWriteTime()
-{
-
-	time_t rawtime;
-	struct tm *timeinfo;
-
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-	char *temp = asctime(timeinfo);
-	strncpy(lastWriteTime,temp,24);
-
-}
-
-bool
-FileHeader::extendLen(BitMap *bitMap,int fileSize){
-	int needsectors = divRoundUp(fileSize,SectorSize);
-	int originalByte = FileLength();
-	int originalSectors = divRoundUp(originalByte,SectorSize);
-	if(bitMap->NumClear() < needsectors){
-		return FALSE;
-	}
-	printf("now extend!\n need sectors %d original sectors %d.\n",needsectors,numSectors);
-	int totalsectors = needsectors + originalSectors;
-	if(totalsectors > totalDirect){
-		printf("the file is too big.\n");
-		return FALSE;
-	}
-	if(totalsectors < NumDirect){
-		printf("we only need the first .\n");
-		for(int i =0; i < needsectors; i++){
-			dataSectors[originalSectors+i] = bitMap->Find();
-			printf("originalSectors+i %d, dataSectors[originalSectors+i] %d.\n",originalSectors+i,dataSectors[originalSectors+i]);
-		}
-	}
-	else if(originalSectors <NumDirect){
-		printf("we need the first and second.\n");
-		int directLeftSectors = NumDirect - originalSectors;
-		for(int i = 0; i < directLeftSectors; i++){
-			dataSectors[originalSectors+i] = bitMap->Find();
-			printf("originalSectors+i %d, dataSectors[originalSectors+i] %d.\n",originalSectors+i,dataSectors[originalSectors+i]);
-		}
-		int leftSectors = needsectors - directLeftSectors;
-		int needSecond = divRoundUp(leftSectors,32);
-		printf("need second %d",needSecond);
-		for(int i = 0; i < needSecond; i++){
-			dataSectors[NumDirect + i] = bitMap->Find();
-			int num;
-			int test = leftSectors - SecondDirect;
-			num = (test > 0) ? SecondDirect : leftSectors;
-			int *sectors = new int[num];
-			for(int j = 0; j < num; j++){
-				sectors[j] = bitMap->Find();
-				printf("second index %d sectors %d bitmap %d.\n",i,j,sectors[j]);
-			}
-			synchDisk->WriteSector(dataSectors[NumDirect+i],(char*)sectors);
-			delete sectors;
-			leftSectors = leftSectors - 32;
-		}
-	}
-	else{
-		printf("only need second .\n");
-		int originalSecond = (originalSectors - NumDirect)/32+((originalSectors - NumDirect)%32+31)/32;
-
-		int temp =(originalSecond)*32;
-		int lastSecond = originalSectors -temp - NumDirect;
-	
-		printf("the originalSecond %d, the lastsecond %d.\n",originalSecond,lastSecond);
-		if(lastSecond == 0){
-			int needSecond = divRoundUp(needsectors,32);
-			for(int i = 0; i < needSecond; i++){
-			dataSectors[NumDirect + originalSecond + i] = bitMap->Find();
-			int num;
-			int test = needsectors - SecondDirect;
-			num = (test > 0) ? SecondDirect : needsectors;
-			int *sectors = new int[num];
-			for(int j = 0; j < num; j++){
-				sectors[j] = bitMap->Find();
-				printf("second index %d sectors %d bitmap %d.\n",i,j,sectors[j]);
-			}
-			synchDisk->WriteSector(dataSectors[NumDirect+originalSecond+i],(char*)sectors);
-			delete sectors;
-			needsectors = needsectors - 32;
-			}
-		}
-		else{
-			lastSecond+=32;
-			char *sectorTemp = new char[SectorSize];
-			synchDisk->ReadSector(dataSectors[NumDirect+originalSecond-1],sectorTemp);
-			int *sector = (int*)sectorTemp;
-			int length = needsectors + lastSecond;
-			if(length <= 32){
-				for(int i = 0; i < needsectors; i++){
-					sector[lastSecond+i] = bitMap->Find();
-					printf("the sector[%d] is %d.\n",lastSecond+i,sector[lastSecond+i]);
-				}
-			}
-			else{
-				int first = 32 - lastSecond;
-				for(int i = 0; i < first; i++){
-					sector[lastSecond+i] = bitMap->Find();
-					printf("the sector[%d] is %d.\n",lastSecond+i,sector[lastSecond+i]);
-				}
-				int leftSectors = needsectors - first;
-				int needSecondIndex = (leftSectors/32) + (leftSectors%32+31)/32;
-				printf("need second index %d.\n",needSecondIndex);
-				for(int i = 0; i < needSecondIndex; i++){
-					dataSectors[NumDirect + originalSecond +i] = bitMap->Find();
-					int num;
-					int test = leftSectors - SecondDirect;
-					num = (test > 0) ? SecondDirect : leftSectors;
-					int *sectors = new int[num];
-					for(int j = 0; j < num; j++){
-						sectors[j] = bitMap->Find();
-						printf("second index %d sectors %d bitmap %d.\n",i,j,sectors[j]);
-					}
-					synchDisk->WriteSector(dataSectors[NumDirect+originalSecond+i],(char*)sectors);
-					delete sectors;
-					leftSectors = leftSectors - 32;
-				}
-			}
-		}
-	}
+void FileHeader::set_modify_time(){
+	time_t timep;
+	time(&timep);
+	strncpy(modify_time,asctime(gmtime(&timep)),25);
+	modify_time[24]='\0';
 }
