@@ -42,12 +42,49 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 { 
     numBytes = fileSize;
     numSectors  = divRoundUp(fileSize, SectorSize);
-    if (freeMap->NumClear() < numSectors)
+    DEBUG('f',"file size :%d , need %d sectors\n",fileSize,numSectors);
+    if (freeMap->NumClear() < numSectors){
+	    DEBUG('f',"Disk space not enough\n");
 	return FALSE;		// not enough space
+    }
 
-    for (int i = 0; i < numSectors; i++)
-	dataSectors[i] = freeMap->Find();
-    return TRUE;
+	if(fileSize > MaxFileSize){
+		DEBUG('f',"file size > MaxFileSize\n");
+		return false;
+	}
+
+	// if we do not need to use a second index
+	if(numSectors<=NumDirect){
+		DEBUG('f',"do not need second index\n");
+		for (int i = 0; i < numSectors; i++)
+			dataSectors[i] = freeMap->Find();
+	}
+	else{
+		// first use direct index
+		for (int i = 0; i < NumDirect; i++)
+			dataSectors[i] = freeMap->Find();
+		// calculate the sectors left
+		int sectorsLeft=numSectors-NumDirect;
+		DEBUG('f',"need to put %d sectors in second index \n",sectorsLeft);
+		for(int i=0;sectorsLeft>0;i++){
+			// find a sector to accommodate the sector numbers
+			dataSectors[NumDirect+i]=freeMap->Find();
+			int num1=0;
+			if(sectorsLeft<SecondDirect)
+				num1=sectorsLeft;
+			else 
+				num1=SecondDirect;
+			int *sectors=new int[num1];
+			for(int j=0;j<num1;j++){
+				sectors[j]=freeMap->Find();
+				DEBUG('f',"second index %d ,%d th secotr ,location %d\n",i,j,sectors[j]);
+			}
+			synchDisk->WriteSector(dataSectors[NumDirect+i],(char*)sectors);
+			delete sectors;
+			sectorsLeft-=num1;
+		}
+	}
+	return TRUE;
 }
 
 //----------------------------------------------------------------------
@@ -59,10 +96,38 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 void 
 FileHeader::Deallocate(BitMap *freeMap)
 {
-    for (int i = 0; i < numSectors; i++) {
-	ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
-	freeMap->Clear((int) dataSectors[i]);
-    }
+	if(numSectors<=NumDirect){
+		for (int i = 0; i < numSectors; i++) {
+			ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
+			freeMap->Clear((int) dataSectors[i]);
+		}
+	}
+	else{
+		//deallocate direct 
+		for (int i=0;i<NumDirect;i++){
+			ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
+			freeMap->Clear((int) dataSectors[i]);
+		}
+		//deallocate indirect 
+		int sectorsLeft=numSectors-NumDirect;
+		for(int i=0;sectorsLeft>0;i++){
+			int num1=0;
+			if(sectorsLeft<SecondDirect)
+				num1=sectorsLeft;
+			else 
+				num1=SecondDirect;
+			int * sectors=new int[num1];
+			synchDisk->ReadSector(dataSectors[NumDirect+i],(char *)sectors);
+			for (int j=0;j<num1;j++){
+				ASSERT(freeMap->Test(sectors[j]));
+				freeMap->Clear(sectors[j]);
+			}
+			delete sectors;
+			sectorsLeft-=num1;
+			ASSERT(freeMap->Test(dataSectors[NumDirect+i]));
+			freeMap->Clear(dataSectors[NumDirect+i]);	
+		}
+	}
 }
 
 //----------------------------------------------------------------------
@@ -99,11 +164,23 @@ FileHeader::WriteBack(int sector)
 //
 //	"offset" is the location within the file of the byte in question
 //----------------------------------------------------------------------
-
 int
 FileHeader::ByteToSector(int offset)
 {
-    return(dataSectors[offset / SectorSize]);
+	int sectorOffset = offset / SectorSize;
+	if(sectorOffset < NumDirect)
+	    return(dataSectors[offset / SectorSize]);
+	else
+	{
+		int sectorsLeft=sectorOffset-NumDirect;
+		int secondIndex=sectorsLeft/SecondDirect;
+		int *sectors=new int[SecondDirect];
+		synchDisk->ReadSector(dataSectors[NumDirect+secondIndex],(char*)sectors);
+		int indexOffset=sectorOffset-NumDirect-secondIndex*SecondDirect;
+		int res=sectors[indexOffset];
+		delete sectors;
+		return res;
+	}
 }
 
 //----------------------------------------------------------------------

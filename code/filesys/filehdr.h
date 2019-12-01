@@ -18,8 +18,11 @@
 #include "bitmap.h"
 
 #define FCBEntrySize	(2*sizeof(int)+3*25*sizeof(char))
-#define NumDirect 	((SectorSize - FCBEntrySize) / sizeof(int))
-#define MaxFileSize 	(NumDirect * SectorSize)
+#define NumSecondIndex  5
+#define SecondDirect	(SectorSize / sizeof(int))
+#define NumDirect 	((SectorSize - FCBEntrySize-NumSecondIndex * sizeof(int)) / sizeof(int))
+#define NumIndirect	(NumSecondIndex * SectorSize /sizeof(int))
+#define MaxFileSize 	(NumDirect * SectorSize+ NumIndirect * SectorSize)
 
 // The following class defines the Nachos "file header" (in UNIX terms,  
 // the "i-node"), describing where on disk to find all of the data in the file.
