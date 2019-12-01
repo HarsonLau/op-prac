@@ -200,9 +200,9 @@ FileSystem::Create(char *name, int initialSize)
 	    else {	
 	    	success = TRUE;
 		    // set create time , visit time , modify time 
-		hdr->set_create_time();
-		hdr->set_visit_time();
-		hdr->set_modify_time();
+		hdr->setCreateTime();
+		hdr->setLastReadTime();
+		hdr->setLastWriteTime();
 		// everthing worked, flush all changes back to disk
     	    	hdr->WriteBack(sector); 		
     	    	directory->WriteBack(directoryFile);

@@ -17,12 +17,14 @@
 #include "disk.h"
 #include "bitmap.h"
 
-#define FCBEntrySize	(2*sizeof(int)+3*25*sizeof(char))
-#define NumSecondIndex  5
-#define SecondDirect	(SectorSize / sizeof(int))
-#define NumDirect 	((SectorSize - FCBEntrySize-NumSecondIndex * sizeof(int)) / sizeof(int))
-#define NumIndirect	(NumSecondIndex * SectorSize /sizeof(int))
-#define MaxFileSize 	(NumDirect * SectorSize+ NumIndirect * SectorSize)
+#define SecondIndex 5
+#define NumDirect 	((SectorSize - (2+SecondIndex) * sizeof(int) - (3*25)*sizeof(char)) / sizeof(int))
+#define SecondDirect  SectorSize/sizeof(int)
+
+#define totalFirst NumDirect+SecondIndex
+#define totalDirect NumDirect + SecondIndex*SecondDirect
+
+#define MaxFileSize 	(totalDirect * SectorSize)
 
 // The following class defines the Nachos "file header" (in UNIX terms,  
 // the "i-node"), describing where on disk to find all of the data in the file.
@@ -60,18 +62,19 @@ class FileHeader {
 
     void Print();			// Print the contents of the file.
 
-    char create_time[25];		// The time created
-    char visit_time[25];		// The time of last visit
-    char modify_time[25];		// The time of last modification
-
-    void set_create_time();
-    void set_visit_time();
-    void set_modify_time();
-
+	char createTime[25];
+	char lastReadTime[25];
+	char lastWriteTime[25];
+	
+	void setCreateTime();
+	void setLastReadTime();
+	void setLastWriteTime();
+	bool extendLen(BitMap *bitMap,int fileSize);
+	int numBytes;
   private:
-    int numBytes;			// Number of bytes in the file
+ //   int numBytes;			// Number of bytes in the file
     int numSectors;			// Number of data sectors in the file
-    int dataSectors[NumDirect];		// Disk sector numbers for each data 
+    int dataSectors[11];		// Disk sector numbers for each data 
 					// block in the file
 };
 
