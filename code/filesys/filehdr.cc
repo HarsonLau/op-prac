@@ -56,13 +56,18 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 	// if we do not need to use a second index
 	if(numSectors<=NumDirect){
 		DEBUG('f',"do not need second index\n");
-		for (int i = 0; i < numSectors; i++)
+		for (int i = 0; i < numSectors; i++){
 			dataSectors[i] = freeMap->Find();
+			DEBUG('f',"dataSector[%d]=%d\n",i,dataSectors[i]);
+		}
 	}
 	else{
 		// first use direct index
-		for (int i = 0; i < NumDirect; i++)
+		for (int i = 0; i < NumDirect; i++){
 			dataSectors[i] = freeMap->Find();
+			DEBUG('f',"dataSector[%d]=%d\n",i,dataSectors[i]);
+
+		}
 		// calculate the sectors left
 		int sectorsLeft=numSectors-NumDirect;
 		DEBUG('f',"need to put %d sectors in second index \n",sectorsLeft);
@@ -97,6 +102,7 @@ void
 FileHeader::Deallocate(BitMap *freeMap)
 {
 	if(numSectors<=NumDirect){
+		DEBUG('f',"Do not need to deallocate second indexes\n");
 		for (int i = 0; i < numSectors; i++) {
 			ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
 			freeMap->Clear((int) dataSectors[i]);
@@ -108,6 +114,7 @@ FileHeader::Deallocate(BitMap *freeMap)
 			ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
 			freeMap->Clear((int) dataSectors[i]);
 		}
+		DEBUG('f',"Deallocating Second level indexes\n");
 		//deallocate indirect 
 		int sectorsLeft=numSectors-NumDirect;
 		for(int i=0;sectorsLeft>0;i++){
@@ -116,12 +123,15 @@ FileHeader::Deallocate(BitMap *freeMap)
 				num1=sectorsLeft;
 			else 
 				num1=SecondDirect;
-			int * sectors=new int[num1];
+			DEBUG('f',"need to deallocate %d sectors\n",num1);
+			int * sectors=new int[SecondDirect];
+			DEBUG('f',"array sectors created with length %d\n",num1);
 			synchDisk->ReadSector(dataSectors[NumDirect+i],(char *)sectors);
 			for (int j=0;j<num1;j++){
-				ASSERT(freeMap->Test(sectors[j]));
-				freeMap->Clear(sectors[j]);
+				ASSERT(freeMap->Test((int )sectors[j]));
+				freeMap->Clear((int)sectors[j]);
 			}
+			DEBUG('f',"deallocated %d sectors\n",num1);
 			delete sectors;
 			sectorsLeft-=num1;
 			ASSERT(freeMap->Test(dataSectors[NumDirect+i]));

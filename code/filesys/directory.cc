@@ -109,6 +109,10 @@ Directory::Find(char *name)
 
     if (i != -1)
 	return table[i].sector;
+	else{
+		printf("%s not found,ls :\n");
+		List();
+	}
     return -1;
 }
 
@@ -126,6 +130,7 @@ Directory::Find(char *name)
 bool
 Directory::Add(char *name, int newSector,bool isDir=false)
 { 
+	DEBUG('f',"adding file %s \n",name);
     if (FindIndex(name) != -1)
 	return FALSE;
 
@@ -135,6 +140,7 @@ Directory::Add(char *name, int newSector,bool isDir=false)
             strncpy(table[i].name, name, FileNameMaxLen); 
             table[i].sector = newSector;
 	    table[i].isDir=isDir;
+	    DEBUG('f',"adding file succeeded \n");
         return TRUE;
 	}
     return FALSE;	// no space.  Fix when we have extensible files.
@@ -165,9 +171,11 @@ Directory::Remove(char *name)
 void
 Directory::List()
 {
+	printf("------begin-list-------\n");
    for (int i = 0; i < tableSize; i++)
 	if (table[i].inUse)
 	    printf("%s\n", table[i].name);
+	printf("------end-list-------\n");
 }
 
 //----------------------------------------------------------------------
@@ -189,4 +197,38 @@ Directory::Print()
 	}
     printf("\n");
     delete hdr;
+}
+
+//----------------------------------------------------------------------
+// Directory::isDir
+//	Check if the file whose path = name is a directory
+//	Assume name is in the directory
+//----------------------------------------------------------------------
+bool Directory::isDir(char * name){
+	int i=FindIndex(name);
+	if(i<0){
+		DEBUG('f',"%s isn't in this directory\n",name);
+		return false;
+	}
+	if(table[i].isDir&&table[i].inUse){
+		DEBUG('f',"%s is a directory\n",name);
+		return true;
+	}
+	DEBUG('f',"%s isn't a directory\n",name);
+	return false;
+}
+
+//----------------------------------------------------------------------
+// Directory::isEmpty
+//	Check whether the directory itself is empty
+//----------------------------------------------------------------------
+bool Directory::isEmpty(){
+	for(int i=0;i<tableSize;i++){
+		if(table[i].inUse){
+			DEBUG('f'," this directory is not empty\n");
+			return false;
+		}
+	}
+	DEBUG('f',"this directory is empty\n");
+	return true;
 }

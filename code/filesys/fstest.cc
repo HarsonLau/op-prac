@@ -183,3 +183,23 @@ PerformanceTest()
     stats->Print();
 }
 
+void MyTest(){
+    if (!fileSystem->Create("/testdir", -1)) {
+	    DEBUG('f',"can't create directory\n");
+    }
+    if (!fileSystem->Create("/testdir/test.txt", 6000)) {
+	    DEBUG('f',"can't create test.txt in directory testdir \n");
+    }
+    if (!fileSystem->Remove("/testdir/test.txt")) {
+	    DEBUG('f',"can't remove test.txt in directory testdir \n");
+    }
+    if (!fileSystem->Create("/testdir/test1.txt", 100)) {
+	    DEBUG('f',"can't create test1.txt in directory testdir \n");
+    }
+    if (!fileSystem->Create("/testdir/test2.txt", 100)) {
+	    DEBUG('f',"can't create test2.txt in directory testdir \n");
+    }
+    if(!fileSystem->Remove("/testdir")){
+	    DEBUG('f',"can't remove /testdir  which is not empty\n");
+    }
+}
