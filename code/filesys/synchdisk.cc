@@ -43,6 +43,15 @@ SynchDisk::SynchDisk(char* name)
     semaphore = new Semaphore("synch disk", 0);
     lock = new Lock("synch disk lock");
     disk = new Disk(name, DiskRequestDone, (int) this);
+    readerCnt=new int[NumSectors];
+    openerCnt=new int[NumSectors];
+    memset(readerCnt,0,sizeof(int)*NumSectors);
+    memset(openerCnt,0,sizeof(int)*NumSectors);
+   for(int i=0;i<NumSectors;i++){
+	rCntMutex[i]=new Semaphore("reader cnt mutex",1);
+	oCntMutex[i]=new Semaphore("opener cnt mutex",1);
+	RW[i]=new Semaphore("reader writer mutex",1);
+   } 
 }
 
 //----------------------------------------------------------------------
@@ -55,6 +64,13 @@ SynchDisk::~SynchDisk()
     delete disk;
     delete lock;
     delete semaphore;
+    delete readerCnt;
+    delete openerCnt;
+    for(int i=0;i<NumSectors;i++){
+	    delete rCntMutex[i];
+	    delete oCntMutex[i];
+	    delete RW[i];
+    }
 }
 
 //----------------------------------------------------------------------
@@ -100,4 +116,53 @@ void
 SynchDisk::RequestDone()
 { 
     semaphore->V();
+}
+
+void SynchDisk::StartRead(int hdrSector){
+	DEBUG('F',"waiting to read hdrsector=%2d\n",hdrSector);
+	rCntMutex[hdrSector]->P();
+	if(readerCnt[hdrSector]==0)
+		RW[hdrSector]->P();
+	readerCnt[hdrSector]++;
+	rCntMutex[hdrSector]->V();
+	DEBUG('F',"permitted to read hdrsector=%2d\n",hdrSector);
+}
+void SynchDisk::EndRead(int hdrSector){
+	rCntMutex[hdrSector]->P();
+	readerCnt[hdrSector]--;
+	if(readerCnt[hdrSector]==0)
+		RW[hdrSector]->V();
+	rCntMutex[hdrSector]->V();
+	DEBUG('F'," read hdrsector=%2d finished\n",hdrSector);
+
+}
+void SynchDisk::StartWrite(int hdrSector){
+	DEBUG('F',"waiting to write hdrsector=%2d\n",hdrSector);
+	RW[hdrSector]->P();
+	DEBUG('F',"premited to write hdrsector=%2d\n",hdrSector);
+}
+void SynchDisk::EndWrite(int hdrSector){
+	RW[hdrSector]->V();
+	DEBUG('F'," write hdrsector=%2d finished\n",hdrSector);
+}
+void SynchDisk::Open(int hdrSector){
+	oCntMutex[hdrSector]->P();
+	openerCnt[hdrSector]++;
+	oCntMutex[hdrSector]->V();
+}
+void SynchDisk::Close(int hdrSector){
+	oCntMutex[hdrSector]->P();
+	openerCnt[hdrSector]--;
+	oCntMutex[hdrSector]->V();
+}
+int SynchDisk::GetOpenStart(int hdrSector){
+	DEBUG('F',"accessing the openercnt hdrsector:%2d \n",hdrSector);
+	//oCntMutex[hdrSector]->P();
+	DEBUG('f',"Open cnt for %2d is %2d\n",hdrSector,openerCnt[hdrSector]);
+	 return openerCnt[hdrSector];
+}
+int SynchDisk::GetOpenDone(int hdrSector){
+	DEBUG('f',"in get open done\n");
+	//oCntMutex[hdrSector]->V();
+	DEBUG('F',"finished accessing the openercnt hdrsector:%2d \n",hdrSector);
 }

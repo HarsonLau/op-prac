@@ -50,6 +50,7 @@
 #include "directory.h"
 #include "filehdr.h"
 #include "filesys.h"
+#include "system.h"
 
 // Sectors containing the file headers for the bitmap of free sectors,
 // and the directory of files.  These file headers are placed in well-known 
@@ -97,6 +98,8 @@ FileSystem::FileSystem(bool format)
 
 	ASSERT(mapHdr->Allocate(freeMap, FreeMapFileSize));
 	ASSERT(dirHdr->Allocate(freeMap, DirectoryFileSize));
+	mapHdr->set_create_time();
+	dirHdr->set_create_time();
 
     // Flush the bitmap and directory FileHeaders back to disk
     // We need to do this before we can "Open" the file, since open
@@ -307,6 +310,12 @@ FileSystem::Remove(char *name)
 	sector = directory->Find(name);
 	if (sector == -1) {
 		DEBUG('f',"Didn't find file %s in its parent directory\n",name);
+		delete parentFile;
+		delete directory;
+		return FALSE;			 // file not found 
+	}
+	if(synchDisk->GetOpenStart(sector)>0){
+		delete parentFile;
 		delete directory;
 		return FALSE;			 // file not found 
 	}
@@ -318,9 +327,19 @@ FileSystem::Remove(char *name)
 		for(int i=0;i<NameDir->tableSize;i++){
 			if(NameDir->table[i].inUse){
 				DEBUG('f',"Removing %s",&(NameDir->table[i].name[0]));
-				Remove(&(NameDir->table[i].name[0]));
+				bool flag=Remove(&(NameDir->table[i].name[0]));
+				if(!flag){
+					DEBUG('f',"File %s still in use,can't be removed\n");
+					delete NameFile;
+					delete NameDir;
+					delete parentFile;
+					delete directory;
+					return false;
+				}
 			}
 		}
+		delete NameFile;
+		delete NameDir;
 	}
 	fileHdr = new FileHeader;
 	fileHdr->FetchFrom(sector);
@@ -334,7 +353,9 @@ FileSystem::Remove(char *name)
 	directory->Remove(name);
 
 	freeMap->WriteBack(freeMapFile);		// flush to disk
+	DEBUG('f',"Write Back freemap success\n");
 	directory->WriteBack(parentFile);        // flush to disk
+	DEBUG('f',"Write Back parentFile success\n");
 	printf("After removing file %s,the bitmap goes as follows\n");
 	freeMap->Print();
 	delete fileHdr;

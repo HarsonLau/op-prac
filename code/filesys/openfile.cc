@@ -29,6 +29,7 @@
 
 OpenFile::OpenFile(int sector)
 { 
+	synchDisk->Open(sector);
     hdr = new FileHeader;
     hdr->FetchFrom(sector);
     //hdr->Print();
@@ -43,6 +44,7 @@ OpenFile::OpenFile(int sector)
 
 OpenFile::~OpenFile()
 {
+	synchDisk->Close(this->headerSector);
     delete hdr;
 }
 
@@ -133,11 +135,12 @@ OpenFile::ReadAt(char *into, int numBytes, int position)
     numSectors = 1 + lastSector - firstSector;
 
     // read in all the full and partial sectors that we need
+	synchDisk->StartRead(this->headerSector);
     buf = new char[numSectors * SectorSize];
     for (i = firstSector; i <= lastSector; i++)	
         synchDisk->ReadSector(hdr->ByteToSector(i * SectorSize), 
 					&buf[(i - firstSector) * SectorSize]);
-
+    synchDisk->EndRead(this->headerSector);
     // copy the part we want
     bcopy(&buf[position - (firstSector * SectorSize)], into, numBytes);
     
@@ -192,10 +195,13 @@ OpenFile::WriteAt(char *from, int numBytes, int position)
 // copy in the bytes we want to change 
     bcopy(from, &buf[position - (firstSector * SectorSize)], numBytes);
 
+	synchDisk->StartWrite(this->headerSector);
 // write modified sectors back
     for (i = firstSector; i <= lastSector; i++)	
         synchDisk->WriteSector(hdr->ByteToSector(i * SectorSize), 
 					&buf[(i - firstSector) * SectorSize]);
+    synchDisk->EndWrite(this->headerSector);
+
     hdr->set_visit_time();
     hdr->set_modify_time();
     hdr->WriteBack(headerSector);

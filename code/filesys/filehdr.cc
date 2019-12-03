@@ -219,6 +219,8 @@ FileHeader::Print()
     printf("FileHeader contents.  File size: %d.  File blocks:\n", numBytes);
     for (i = 0; i < numSectors; i++)
 	printf("%d ", dataSectors[i]);
+	printf("\n");
+/*
     printf("\nFile contents:\n");
     for (i = k = 0; i < numSectors; i++) {
 	synchDisk->ReadSector(dataSectors[i], data);
@@ -230,6 +232,7 @@ FileHeader::Print()
 	}
         printf("\n"); 
     }
+  */
     printf("create time:%s\n",create_time);
     printf("last visit time :%s\n",visit_time);
     printf("last modify time :%s\n",modify_time);
