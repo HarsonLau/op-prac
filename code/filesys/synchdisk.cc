@@ -22,7 +22,6 @@
 // 	Disk interrupt handler.  Need this to be a C routine, because 
 //	C++ can't handle pointers to member functions.
 //----------------------------------------------------------------------
-
 static void
 DiskRequestDone (int arg)
 {
@@ -39,7 +38,6 @@ DiskRequestDone (int arg)
 //	"name" -- UNIX file name to be used as storage for the disk data
 //	   (usually, "DISK")
 //----------------------------------------------------------------------
-
 SynchDisk::SynchDisk(char* name)
 {
     semaphore = new Semaphore("synch disk", 0);
@@ -52,7 +50,6 @@ SynchDisk::SynchDisk(char* name)
 // 	De-allocate data structures needed for the synchronous disk
 //	abstraction.
 //----------------------------------------------------------------------
-
 SynchDisk::~SynchDisk()
 {
     delete disk;
@@ -68,7 +65,6 @@ SynchDisk::~SynchDisk()
 //	"sectorNumber" -- the disk sector to read
 //	"data" -- the buffer to hold the contents of the disk sector
 //----------------------------------------------------------------------
-
 void
 SynchDisk::ReadSector(int sectorNumber, char* data)
 {
@@ -86,7 +82,6 @@ SynchDisk::ReadSector(int sectorNumber, char* data)
 //	"sectorNumber" -- the disk sector to be written
 //	"data" -- the new contents of the disk sector
 //----------------------------------------------------------------------
-
 void
 SynchDisk::WriteSector(int sectorNumber, char* data)
 {
@@ -101,7 +96,6 @@ SynchDisk::WriteSector(int sectorNumber, char* data)
 // 	Disk interrupt handler.  Wake up any thread waiting for the disk
 //	request to finish.
 //----------------------------------------------------------------------
-
 void
 SynchDisk::RequestDone()
 { 

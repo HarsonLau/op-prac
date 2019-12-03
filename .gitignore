@@ -37,3 +37,7 @@ code/network/nachos
 code/threads/nachos
 code/userprog/nachos
 code/vm/nachos
+._sync_91e8ad303ee3.db-wal
+._sync_91e8ad303ee3.db-shm
+._sync_91e8ad303ee3.db
+code/filesys/DISK
