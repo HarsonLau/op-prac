@@ -254,3 +254,70 @@ void FileHeader::set_modify_time(){
 	strncpy(modify_time,asctime(gmtime(&timep)),25);
 	modify_time[24]='\0';
 }
+//----------------------------------------------------------------------
+// FileHeader::extendLength
+//	Extend the file length by sectorNum sectors
+//	This function will change the fileheader itself and the freemap
+//	It's the caller's duty to write the changes back to the disk
+//----------------------------------------------------------------------
+bool FileHeader::extendLength(int newNumBytes,int sectorNum,BitMap* freeMap){
+	/*如果一级索引还有剩余的话，一定要利用起来*/
+	if(numSectors<NumDirect&&sectorNum>0){
+		for(int i=numSectors;i<NumDirect&&sectorNum>0;i++){
+			dataSectors[i]=freeMap->Find();
+			numSectors++;
+			sectorNum--;
+			DEBUG('f',"Using %dth direct index->%2d\n",i,dataSectors[i]);
+		}
+	}
+	for(int i=1;i<=NumSecondIndex;i++){
+		if(sectorNum<=0)
+			break;
+		/*如果需要新开一个二级索引的话，就新开一个吧*/
+		if(numSectors==(NumDirect+(i-1)*SecondDirect)){
+			dataSectors[NumDirect+i-1]=freeMap->Find();
+			DEBUG('f',"Using %dth second index->%2d\n",i-1,dataSectors[NumDirect+i-1]);		
+			int * sectors=new int[SecondDirect];
+			for(int j=0;j<SecondDirect&&sectorNum>0;j++){
+				sectors[j]=freeMap->Find();
+				numSectors++;
+				sectorNum--;
+				DEBUG('f',"sectors[%2d]=%2d\n",j,sectors[j]);
+			}
+			synchDisk->WriteSector(dataSectors[NumDirect+i-1],(char*)sectors);
+			delete sectors;
+		}
+
+		if(sectorNum<=0)
+			break;
+		/*逻辑比较复杂，我英文差，说不清楚^~^
+		* 如果当前文件控制块中的信息显示已分配给本文件的扇区数的确使用了二级索引，
+		* 但是二级索引那块还有剩余空间
+		* 这一块用了多少个条目呢，除去直接索引的那部分，模上SecondDirect即32
+		* 然后就从这个地方开始，分配给
+		*/
+		if(numSectors>(NumDirect+(i-1)*SecondDirect)&&numSectors<(NumDirect+i*SecondDirect)&&sectorNum>0){
+			int * sectors=new int[SecondDirect];
+			synchDisk->ReadSector(dataSectors[NumDirect+i-1],(char*)sectors);
+			int index=(numSectors-NumDirect)%SecondDirect;
+			DEBUG('f',"%dth second index ->%2d is not full\n",i-1,dataSectors[i-1]);
+			for(int j=index;j<SecondDirect&&sectorNum>0;j++){
+				sectors[j]=freeMap->Find();
+				numSectors++;
+				sectorNum--;
+				DEBUG('f',"sectors[%2d]=%2d\n",j,sectors[j]);
+			}
+			synchDisk->WriteSector(dataSectors[NumDirect+i-1],(char*)sectors);
+			delete sectors;
+		}
+
+		if(sectorNum<=0)
+			break;
+	}
+	if(sectorNum<=0){
+		numBytes=newNumBytes;
+		return true;
+	}
+	else 
+		return false;
+}

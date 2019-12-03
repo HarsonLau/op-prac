@@ -67,6 +67,7 @@ class FileHeader {
     void set_create_time();
     void set_visit_time();
     void set_modify_time();
+    bool extendLength(int newNumBytes,int sectorNum, BitMap *freeMap);
 
   private:
     int numBytes;			// Number of bytes in the file

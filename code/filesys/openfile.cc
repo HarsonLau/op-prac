@@ -157,8 +157,19 @@ OpenFile::WriteAt(char *from, int numBytes, int position)
 
     if ((numBytes <= 0) || (position >= fileLength))
 	return 0;				// check request
-    if ((position + numBytes) > fileLength)
-	numBytes = fileLength - position;
+    if ((position + numBytes) > fileLength){
+	    int originalSectors=divRoundUp(fileLength,SectorSize);
+	    int NewSectors=divRoundUp((position+numBytes),SectorSize);
+	    int deltaSectors=NewSectors-originalSectors;
+	if(fileSystem->ExtendWrapper(position+numBytes,this->headerSector,this->hdr,deltaSectors)){
+		fileLength=hdr->FileLength();
+		DEBUG('f',"Extend Length succeeded\n");
+	}
+	else{
+		numBytes=fileLength-position;
+		DEBUG('f',"Extend Length failed\n");
+	}
+    }
     DEBUG('f', "Writing %d bytes at %d, from file of length %d.\n", 	
 			numBytes, position, fileLength);
 

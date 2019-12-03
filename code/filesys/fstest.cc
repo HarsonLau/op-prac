@@ -16,6 +16,7 @@
 
 #include "utility.h"
 #include "filesys.h"
+#include "filehdr.h"
 #include "system.h"
 #include "thread.h"
 #include "disk.h"
@@ -182,8 +183,7 @@ PerformanceTest()
     }
     stats->Print();
 }
-
-void MyTest(){
+void ex4_test(){
     if (!fileSystem->Create("/testdir", -1)) {
 	    DEBUG('f',"can't create directory\n");
     }
@@ -202,4 +202,27 @@ void MyTest(){
     if(!fileSystem->Remove("/testdir")){
 	    DEBUG('f',"can't remove /testdir  which is not empty\n");
     }
+
+}
+void ex5_test(){
+    if (!fileSystem->Create("/test.txt", 600)) {
+	    DEBUG('f',"can't create test.txt in directory testdir \n");
+    }
+    int sec=fileSystem->GetHeaderSector("/test.txt");
+    OpenFile* opf=new OpenFile(sec);
+    char * tmp=new char[6000];
+    for(int i=0;i<6000;i++){
+	    tmp[i]=(char)('0'+i%10);
+    }
+    tmp[5999]='\0';
+    opf->WriteAt(tmp,6000,300);
+    delete opf;
+    delete tmp;
+}
+
+void MyTest(){
+	//ex4_test();
+
+	ex5_test();
+
 }

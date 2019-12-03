@@ -434,3 +434,32 @@ int FileSystem::GetParentSector(char* name){
 	DEBUG('f',"%s 's parent sector is %d\n",name,res);
 	return res;
 }
+
+bool FileSystem::ExtendWrapper(int newNumBytes,int headerSector,FileHeader* f,int sectorNum){
+	BitMap* freeMap=new BitMap(NumSectors);
+	freeMap->FetchFrom(freeMapFile);
+	if(f->extendLength(newNumBytes,sectorNum,freeMap)){
+		f->WriteBack(headerSector);
+		freeMap->WriteBack(freeMapFile);
+		delete freeMap;
+		return true;
+	}
+	delete freeMap;
+	return false;
+}
+
+int FileSystem::GetHeaderSector(char *name){
+	int parentSector=GetParentSector(name);
+	if(parentSector<0){
+		DEBUG('f',"Didn't find %s's parent directory\n",name);
+		return -1;
+	}
+	Directory*parentDir=new Directory(NumDirEntries);
+	OpenFile* parentFile=new OpenFile(parentSector);
+	parentDir->FetchFrom(parentFile);
+	int res=parentDir->Find(name);
+	delete parentDir;
+	delete parentFile;
+	DEBUG('f',"%s's header no is %d\n",name,res);
+	return res;
+}

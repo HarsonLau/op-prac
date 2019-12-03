@@ -87,6 +87,10 @@ class FileSystem {
 
     int GetParentSector(char *name);
 
+    int GetHeaderSector(char *name);
+
+    bool ExtendWrapper(int newNumBytes,int headerSector,FileHeader* f,int sectorNum );
+
   private:
    OpenFile* freeMapFile;		// Bit map of free disk blocks,
 					// represented as a file
