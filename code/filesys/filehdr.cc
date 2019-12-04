@@ -42,6 +42,14 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 { 
     numBytes = fileSize;
     numSectors  = divRoundUp(fileSize, SectorSize);
+    int NSecIndex;
+    if(numSectors>NumDirect)
+	NSecIndex =divRoundUp( (numSectors-NumDirect),SecondDirect);
+	bool conse=false;
+	int beg=freeMap->FindN(numSectors+NSecIndex);
+	if(beg>0)
+		conse=true;
+
     DEBUG('f',"file size :%d , need %d sectors\n",fileSize,numSectors);
     if (freeMap->NumClear() < numSectors){
 	    DEBUG('f',"Disk space not enough\n");
@@ -57,14 +65,26 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 	if(numSectors<=NumDirect){
 		DEBUG('f',"do not need second index\n");
 		for (int i = 0; i < numSectors; i++){
-			dataSectors[i] = freeMap->Find();
+			if(conse){
+				dataSectors[i] = beg;
+				beg++;
+			}
+			else{
+				dataSectors[i] = freeMap->Find();
+			}
 			DEBUG('f',"dataSector[%d]=%d\n",i,dataSectors[i]);
 		}
 	}
 	else{
 		// first use direct index
 		for (int i = 0; i < NumDirect; i++){
-			dataSectors[i] = freeMap->Find();
+			if(conse){
+				dataSectors[i] = beg;
+				beg++;
+			}
+			else{
+				dataSectors[i] = freeMap->Find();
+			}
 			DEBUG('f',"dataSector[%d]=%d\n",i,dataSectors[i]);
 
 		}
@@ -73,7 +93,14 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 		DEBUG('f',"need to put %d sectors in second index \n",sectorsLeft);
 		for(int i=0;sectorsLeft>0;i++){
 			// find a sector to accommodate the sector numbers
-			dataSectors[NumDirect+i]=freeMap->Find();
+			if(conse){
+				dataSectors[NumDirect+i]=beg;
+				beg++;
+			}
+			else{
+				dataSectors[NumDirect+i]=freeMap->Find();
+			}
+			
 			int num1=0;
 			if(sectorsLeft<SecondDirect)
 				num1=sectorsLeft;
@@ -81,7 +108,13 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 				num1=SecondDirect;
 			int *sectors=new int[num1];
 			for(int j=0;j<num1;j++){
-				sectors[j]=freeMap->Find();
+				if(conse){
+					sectors[j]=beg;
+					beg++;
+				}
+				else{
+					sectors[j]=freeMap->Find();
+				}
 				DEBUG('f',"second index %d ,%d th secotr ,location %d\n",i,j,sectors[j]);
 			}
 			synchDisk->WriteSector(dataSectors[NumDirect+i],(char*)sectors);

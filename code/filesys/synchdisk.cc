@@ -16,7 +16,8 @@
 
 #include "copyright.h"
 #include "synchdisk.h"
-
+#include "system.h"
+#define CacheEnabled
 //----------------------------------------------------------------------
 // DiskRequestDone
 // 	Disk interrupt handler.  Need this to be a C routine, because 
@@ -52,6 +53,11 @@ SynchDisk::SynchDisk(char* name)
 	oCntMutex[i]=new Semaphore("opener cnt mutex",1);
 	RW[i]=new Semaphore("reader writer mutex",1);
    } 
+   for(int i=0;i<CacheSize;i++){
+	   CacheTable[i]=new CacheEntry();
+	   CacheTable[i]->dirty=CacheTable[i]->valid=false;
+	   CacheTable[i]->lru=stats->totalTicks;
+   }
 }
 
 //----------------------------------------------------------------------
@@ -71,6 +77,9 @@ SynchDisk::~SynchDisk()
 	    delete oCntMutex[i];
 	    delete RW[i];
     }
+    for(int i=0;i<CacheSize;i++){
+	    delete CacheTable[i];
+    }
 }
 
 //----------------------------------------------------------------------
@@ -84,10 +93,37 @@ SynchDisk::~SynchDisk()
 void
 SynchDisk::ReadSector(int sectorNumber, char* data)
 {
+#ifdef CacheEnabled
+	bool hit=false;
+	for(int i=0;i<CacheSize;i++){
+		lock->Acquire();			// only one disk I/O at a time
+		if(CacheTable[i]->valid&&CacheTable[i]->sector==sectorNumber){
+			DEBUG('f',"Cache hit for sector %2d\n",sectorNumber);
+			memcpy(data,&(CacheTable[i]->data[0]),SectorSize);
+			hit=true;
+			CacheTable[i]->lru=stats->totalTicks;
+		}
+		lock->Release();
+	}
+	if(!hit){
+		CacheMiss(sectorNumber);
+		for(int i=0;i<CacheSize;i++){
+			lock->Acquire();			// only one disk I/O at a time
+			if(CacheTable[i]->valid&&CacheTable[i]->sector==sectorNumber){
+				DEBUG('f',"Cache hit for sector %2d\n",sectorNumber);
+				memcpy(data,&(CacheTable[i]->data[0]),SectorSize);
+				hit=true;
+				CacheTable[i]->lru=stats->totalTicks;
+			}
+			lock->Release();
+		}
+	}
+#else
     lock->Acquire();			// only one disk I/O at a time
     disk->ReadRequest(sectorNumber, data);
     semaphore->P();			// wait for interrupt
     lock->Release();
+#endif
 }
 
 //----------------------------------------------------------------------
@@ -101,10 +137,40 @@ SynchDisk::ReadSector(int sectorNumber, char* data)
 void
 SynchDisk::WriteSector(int sectorNumber, char* data)
 {
+#ifdef CacheEnabled
+	bool hit=false;
+	for(int i=0;i<CacheSize;i++){
+		lock->Acquire();			// only one disk I/O at a time
+		if(CacheTable[i]->valid&&CacheTable[i]->sector==sectorNumber){
+			DEBUG('f',"Cache hit for sector %2d\n",sectorNumber);
+			memcpy(&(CacheTable[i]->data[0]),data,SectorSize);
+			hit=true;
+			CacheTable[i]->lru=stats->totalTicks;
+			CacheTable[i]->dirty=true;
+		}
+		lock->Release();
+	}
+	if(!hit){
+		CacheMiss(sectorNumber);
+		for(int i=0;i<CacheSize;i++){
+			lock->Acquire();			// only one disk I/O at a time
+			if(CacheTable[i]->valid&&CacheTable[i]->sector==sectorNumber){
+				DEBUG('f',"Cache hit for sector %2d\n",sectorNumber);
+				memcpy(&(CacheTable[i]->data[0]),data,SectorSize);
+				hit=true;
+				CacheTable[i]->lru=stats->totalTicks;
+				CacheTable[i]->dirty=true;
+			}
+			lock->Release();
+		}
+	}
+
+#else
     lock->Acquire();			// only one disk I/O at a time
     disk->WriteRequest(sectorNumber, data);
     semaphore->P();			// wait for interrupt
     lock->Release();
+#endif
 }
 
 //----------------------------------------------------------------------
@@ -165,4 +231,32 @@ int SynchDisk::GetOpenDone(int hdrSector){
 	DEBUG('f',"in get open done\n");
 	//oCntMutex[hdrSector]->V();
 	DEBUG('F',"finished accessing the openercnt hdrsector:%2d \n",hdrSector);
+}
+void SynchDisk::CacheMiss(int sector){
+	int evict=0;
+	for(int i=0;i<CacheSize;i++){
+		if(!CacheTable[i]->valid){
+			evict=i;
+			break;
+		}
+		if(CacheTable[i]->lru<CacheTable[evict]->lru)
+			evict=i;
+	}
+	if(CacheTable[evict]->valid&&CacheTable[evict]->dirty){
+		lock->Acquire();			// only one disk I/O at a time
+		disk->WriteRequest(CacheTable[evict]->sector, &(CacheTable[evict]->data[0]));
+		semaphore->P();			// wait for interrupt
+		CacheTable[evict]->dirty=false;
+		CacheTable[evict]->valid=false;
+		lock->Release();
+	}
+	//Swap in
+	lock->Acquire();			// only one disk I/O at a time
+	disk->ReadRequest(sector, &(CacheTable[evict]->data[0]));
+	semaphore->P();			// wait for interrupt
+	CacheTable[evict]->dirty=false;
+	CacheTable[evict]->valid=true;
+	CacheTable[evict]->lru=stats->totalTicks;
+	CacheTable[evict]->sector=sector;
+	lock->Release();
 }

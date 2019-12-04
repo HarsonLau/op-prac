@@ -13,7 +13,15 @@
 
 #include "disk.h"
 #include "synch.h"
-
+#define CacheSize 8
+class CacheEntry{
+	public:
+		bool valid;
+		bool dirty;
+		int sector;
+		int lru;
+		char data[SectorSize];
+};
 // The following class defines a "synchronous" disk abstraction.
 // As with other I/O devices, the raw physical disk is an asynchronous device --
 // requests to read or write portions of the disk return immediately,
@@ -49,6 +57,7 @@ class SynchDisk {
 	void Close(int hdrSector);
 	int GetOpenStart(int hdrSector);
 	int GetOpenDone(int hdrSector);
+	void CacheMiss(int sector);
 
   private:
     Disk *disk;		  		// Raw disk device
@@ -61,7 +70,7 @@ class SynchDisk {
 	Semaphore *rCntMutex[NumSectors];
 	Semaphore *oCntMutex[NumSectors];
 	Semaphore *RW[NumSectors];
-
+	CacheEntry *CacheTable[CacheSize];
 };
 
 #endif // SYNCHDISK_H

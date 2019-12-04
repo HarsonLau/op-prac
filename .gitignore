@@ -41,3 +41,4 @@ code/vm/nachos
 ._sync_91e8ad303ee3.db-shm
 ._sync_91e8ad303ee3.db
 code/filesys/DISK
+*.png

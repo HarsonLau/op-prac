@@ -25,6 +25,7 @@
 
 #include "copyright.h"
 #include "utility.h"
+#include "synch.h"
 
 // The following class defines a hardware console device.
 // Input and output to the device is simulated by reading 
@@ -34,7 +35,6 @@
 // is called when a character has arrived, ready to be read in.
 // The interrupt handler "writeDone" is called when an output character 
 // has been "put", so that the next character can be written.
-
 class Console {
   public:
     Console(char *readFile, char *writeFile, VoidFunctionPtr readAvail, 
@@ -71,5 +71,17 @@ class Console {
 					// if there is one available. 
 					// Otherwise contains EOF.
 };
-
+class SynchConsole{
+	public:
+		SynchConsole(char *readFile, char *writeFile);
+		~SynchConsole();
+		char getChar();
+		void putChar(char ch);
+		Semaphore *readAvail;
+		Semaphore *writeDone;
+	private:
+		Console *console;
+		Lock *readLock;
+		Lock *writeLock;
+};
 #endif // CONSOLE_H

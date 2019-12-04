@@ -219,10 +219,76 @@ void ex5_test(){
     delete opf;
     delete tmp;
 }
+void ReaderFunc(int x){
+	int sec=fileSystem->GetHeaderSector("/test.txt");
+	OpenFile* opf=new OpenFile(sec);
+	char * tmp=new char[600];
+	for(int i=0;i<600;i++){
+		tmp[i]=(char)('0'+i%10);
+	}
+	tmp[599]='\0';
+	for(int cnt=0;cnt<10;cnt++){
+		opf->ReadAt(tmp,200,200);
+	}
+	delete opf;
+	delete tmp;
+}
+void WriterFunc(int x){
+	int sec=fileSystem->GetHeaderSector("/test.txt");
+	OpenFile* opf=new OpenFile(sec);
+	char * tmp=new char[600];
+	for(int i=0;i<600;i++){
+		tmp[i]=(char)('0'+i%10);
+	}
+	tmp[599]='\0';
+	for(int cnt=0;cnt<10;cnt++){
+		opf->WriteAt(tmp,200,200);
+	}
+	delete opf;
+	delete tmp;
+}
+void CleannerFunc(int x){
+     while(!fileSystem->Remove("/test.txt")) {
+	    DEBUG('f',"can't remove test.txt in directory testdir \n");
+    }
+}
+void ex7_test(){
+    if (!fileSystem->Create("/test.txt", 600)) {
+	    DEBUG('f',"can't create test.txt in directory testdir \n");
+    }
+    Thread *R1=new Thread("Reader 1");
+    Thread *R2=new Thread("Reader 2");
+    Thread *W1=new Thread("Writer 1");
+    Thread *W2=new Thread("Writer 2");
+    Thread *C1=new Thread("Cleanner 1");
+    R1->Fork(ReaderFunc,(void *)1);
+    W1->Fork(WriterFunc,(void *)1);
+    R2->Fork(ReaderFunc,(void *)1);
+    W2->Fork(WriterFunc,(void *)1);
+    C1->Fork(CleannerFunc,(void *)1);
+}
 
+void ex2_test(){
+	FileHeader* fhdr=new FileHeader();
+	fhdr->FetchFrom(0);
+	fhdr->Print();
+	delete fhdr;
+}
+void ex3_test(){
+    if (!fileSystem->Create("/test.txt", 6000)) {
+	    DEBUG('f',"can't create test.txt");
+    }
+    if (!fileSystem->Remove("/test.txt")) {
+	    DEBUG('f',"can't remove test.txt");
+    }
+}
 void MyTest(){
-	//ex4_test();
+	//ex2_test();
+//	ex3_test();
+//	ex4_test();
 
-	ex5_test();
+//	ex5_test();
+
+	ex7_test();
 
 }

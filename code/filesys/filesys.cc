@@ -236,10 +236,18 @@ FileSystem::Create(char *name, int initialSize)
 			delete hdr;
 		}
 		delete freeMap;
+		if(isDir){
+			OpenFile * Myfile=new OpenFile(sector);
+			Directory * Me=new Directory(NumDirEntries);
+			Me->WriteBack(Myfile);
+			delete Me;
+			delete Myfile;
+		}
 	}
 	printf("after creating file %s,his parent has:\n",name);
 	parent->List();
 	delete parent;
+	delete parentFile;
 	return success;
 }
 

@@ -163,3 +163,17 @@ BitMap::WriteBack(OpenFile *file)
 {
    file->WriteAt((char *)map, numWords * sizeof(unsigned), 0);
 }
+
+int BitMap::FindN(int cnt){
+	for (int i = 0; i < numBits; i++){
+		int flag = 1;
+		for(int j = 0; j < cnt; j++)
+			if(Test(i+j)) flag = 0;
+		if(flag){
+			for(int j = 0; j < cnt; j++)
+				Mark(i+j);
+			return i;
+		}
+	}
+	return -1;
+}
