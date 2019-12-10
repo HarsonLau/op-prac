@@ -11,10 +11,34 @@
  */
 
 #include "syscall.h"
-
+void TestFork(){
+	Create("fork.txt");
+}
+void func(){
+int tid=Exec("sort");
+Join(tid);
+}
 int
 main()
 {
-    Halt();
-    /* not reached */
+/* not reached */
+/*
+	int fd1,fd2;
+	int result;
+	char buffer[20];
+	Create("write.txt");
+	fd1= Open("read.txt");
+	fd2 = Open("write.txt");
+	result = Read(buffer,20,fd1);
+	Write(buffer,result,fd2);
+	Close(fd1);
+	Close(fd2);
+
+*/
+//Fork(TestFork);
+Fork(func);
+//Exit(0);
+//int tid=Exec("sort");
+return 0;
+
 }

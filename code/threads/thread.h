@@ -111,7 +111,6 @@ class Thread {
     int setPriority(int prio){priority=prio;}
     ThreadStatus getStatus(){return status;}
 
-  private:
     // some of the private data for this class is listed above
     
     int* stack; 	 		// Bottom of the stack 

@@ -142,6 +142,11 @@ class Machine {
     void RaiseException(ExceptionType which, int badVAddr);
 				// Trap to the Nachos kernel, because of a
 				// system call or other exception.  
+	void IncrementPC(){
+		WriteRegister(PrevPCReg,registers[PCReg]);
+		WriteRegister(PCReg,registers[PCReg]+sizeof(int));
+		WriteRegister(NextPCReg,registers[NextPCReg]+sizeof(int));
+	}	
 
     void Debugger();		// invoke the user program debugger
     void DumpState();		// print the user CPU and memory state 

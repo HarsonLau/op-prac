@@ -230,3 +230,15 @@ void AddrSpace::RestoreState()
     machine->pageTableSize = numPages;
 	//printf("Restore State finished\n");
 }
+
+void AddrSpace::CopyFrom(AddrSpace * from){
+	numPages=from->numPages;
+	int size = numPages*PageSize;
+	pageTable = new TranslationEntry[numPages];
+	for (int i = 0; i < numPages; i++) {
+		pageTable[i].valid = false;
+		pageTable[i].dirty = false;
+	}
+	vSpace=new char[size];
+	memcpy(vSpace,from->vSpace,size);
+}

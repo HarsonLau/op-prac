@@ -195,7 +195,7 @@ Cleanup()
         
     #ifdef USER_PROGRAM
         delete machine;
-		delete PhysicalPageTable;
+	delete PhysicalPageTable;
     #endif
 
     #ifdef FILESYS_NEEDED
