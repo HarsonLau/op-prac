@@ -252,19 +252,22 @@ ExceptionHandler(ExceptionType which)
 			info->pc=funcPc;
 			Thread * t1=new Thread("Forked by system call");
 			t1->Fork(ForkWrapper,info);
+			machine->WriteRegister(2,t1->getTid());
 			machine->IncrementPC();
 			break;
 		}
 		case SC_Yield:{
-			DEBUG('a',"Yield ,initiated by user program.\n");
+			DEBUG('A',"Yield ,initiated by user program.\n");
 			machine->IncrementPC();
 			currentThread->Yield();
 			break;
 		}
 		case SC_Join:{
-			DEBUG('a',"Join ,initiated by user program.\n");
+			DEBUG('A',"Join ,initiated by user program.\n");
 			int tid=machine->ReadRegister(4);
+			DEBUG('A',"Join ,caller id = %d ,waiting id =%d",currentThread->getTid(),tid);
 			while (TidMap[tid]&&tid!=currentThread->getTid()){
+				DEBUG('A',"Yield caused by join\n");
 				currentThread->Yield();
 			}
 			machine->IncrementPC();

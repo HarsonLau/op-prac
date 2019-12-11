@@ -12,11 +12,20 @@
 
 #include "syscall.h"
 void TestFork(){
-	Create("fork.txt");
+	 int res=1;
+	int i=0;
+	for( i=0;i<1000;i++){
+		res =res*2;
+		if(res>i){
+			Yield();
+		}
+	}
 }
 void func(){
-int tid=Exec("sort");
-Join(tid);
+	int tid1=Exec("sort");
+	int tid2=Fork(TestFork);
+	Join(tid2);
+	Exit(0);
 }
 int
 main()
@@ -33,10 +42,12 @@ main()
 	Write(buffer,result,fd2);
 	Close(fd1);
 	Close(fd2);
-
 */
 //Fork(TestFork);
-Fork(func);
+//int tid1=Exec("sort");
+//Join(tid1);
+int i=Fork(func);
+Exit(0);
 //Exit(0);
 //int tid=Exec("sort");
 return 0;
