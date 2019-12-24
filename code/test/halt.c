@@ -31,7 +31,7 @@ int
 main()
 {
 /* not reached */
-/*
+/* 
 	int fd1,fd2;
 	int result;
 	char buffer[20];
@@ -43,11 +43,15 @@ main()
 	Close(fd1);
 	Close(fd2);
 */
+	OpenFileId output = ConsoleOutput;
+	char msg[7];
+	msg[0]='H';msg[1]='e';msg[2]='l';msg[3]='l';msg[4]='o';msg[5]='\n';msg[6]='\0';
+	Write(msg, 6,output);
 //Fork(TestFork);
 //int tid1=Exec("sort");
 //Join(tid1);
-int i=Fork(func);
-Exit(0);
+//int i=Fork(func);
+//Exit(0);
 //Exit(0);
 //int tid=Exec("sort");
 return 0;

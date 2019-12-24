@@ -130,6 +130,65 @@ Yield:
 	j	$31
 	.end Yield
 
+	.globl Remove
+	.ent Remove
+Remove:
+	addiu $2,$0,SC_Remove
+	syscall
+	j	$31
+	.end Remove
+
+	.globl CDir
+	.ent CDir
+CDir:
+	addiu $2,$0,SC_CDir
+	syscall
+	j	$31
+	.end CDir
+
+	.globl RDir
+	.ent RDir
+RDir:
+	addiu $2,$0,SC_RDir
+	syscall
+	j	$31
+	.end RDir
+
+	.globl Ls
+	.ent Ls
+Ls:
+	addiu $2,$0,SC_Ls
+	syscall
+	j	$31
+	.end Ls
+
+
+	.globl Pwd
+	.ent Pwd
+Pwd:
+	addiu $2,$0,SC_Pwd
+	syscall
+	j	$31
+	.end Pwd
+
+	.globl Cd
+	.ent Cd
+Cd:
+	addiu $2,$0,SC_Cd
+	syscall
+	j	$31
+	.end Cd
+
+	.globl Help
+	.ent Help
+Help:
+	addiu $2,$0,SC_Help
+	syscall
+	j	$31
+	.end Help
+
+
+
 /* dummy function to keep gcc happy */
         .globl  __main
         .ent    __main

@@ -29,6 +29,13 @@
 #define SC_Close	8
 #define SC_Fork		9
 #define SC_Yield	10
+#define SC_Remove	11
+#define SC_CDir		12
+#define SC_RDir		13
+#define SC_Pwd          14
+#define SC_Ls           15
+#define SC_Cd           16
+#define SC_Help         17
 
 #ifndef IN_ASM
 
@@ -45,6 +52,12 @@
 /* Stop Nachos, and print out performance stats */
 void Halt();		
  
+void Remove(char *path);
+void CDir(char *path);
+void RDir(char * path);
+void Ls();
+void Pwd();
+void Cd(char * path);
 
 /* Address space control operations: Exit, Exec, and Join */
 
@@ -85,7 +98,6 @@ typedef int OpenFileId;
 
 #define ConsoleInput	0  
 #define ConsoleOutput	1  
- 
 /* Create a Nachos file, with "name" */
 void Create(char *name);
 
@@ -123,6 +135,7 @@ int Fork(void (*func)());
  * or not. 
  */
 void Yield();		
+
 
 #endif /* IN_ASM */
 

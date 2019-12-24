@@ -20,7 +20,11 @@
 // Copyright (c) 1992-1993 The Regents of the University of California.
 // All rights reserved.  See copyright.h for copyright notice and limitation 
 // of liability and disclaimer of warranty provisions.
-
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
@@ -234,7 +238,7 @@ ExceptionHandler(ExceptionType which)
 		{
 			DEBUG('A',"Exec ,initiated by user program.\n");
 			int address=machine->ReadRegister(4);
-			Thread * t=new Thread("Exec thread");
+			Thread * t=new Thread("Exec thread",currentThread->getPriority()-1);
 			ForkInfo * info=new ForkInfo;
 			info->caller=currentThread->space;
 			info->pc=address;
@@ -270,6 +274,99 @@ ExceptionHandler(ExceptionType which)
 				DEBUG('A',"Yield caused by join\n");
 				currentThread->Yield();
 			}
+			machine->IncrementPC();
+			break;
+		}
+		case SC_RDir:{
+			int address = machine->ReadRegister(4);
+			int value;
+			int count = 0;
+			do{
+				machine->ReadMem(address++,1,&value);
+				count++;
+			}while(value != 0);
+			address = address - count;
+			char fileName[count];
+			for(int i = 0; i < count; i++){
+				machine->ReadMem(address+i,1,&value);
+				fileName[i] = (char)value;
+			}
+			rmdir(fileName);
+			machine->IncrementPC();
+			break;
+		}
+		case SC_CDir:{
+			int address = machine->ReadRegister(4);
+			int value;
+			int count = 0;
+			do{
+				machine->ReadMem(address++,1,&value);
+				count++;
+			}while(value != 0);
+			address = address - count;
+			char fileName[count];
+			for(int i = 0; i < count; i++){
+				machine->ReadMem(address+i,1,&value);
+				fileName[i] = (char)value;
+			}
+			mkdir(fileName,00777);
+			machine->IncrementPC();
+			break;
+		}
+		case SC_Remove:{
+			int address = machine->ReadRegister(4);
+			int value;
+			int count = 0;
+			do{
+				machine->ReadMem(address++,1,&value);
+				count++;
+			}while(value != 0);
+			address = address - count;
+			char fileName[count];
+			for(int i = 0; i < count; i++){
+				machine->ReadMem(address+i,1,&value);
+				fileName[i] = (char)value;
+			}
+			fileSystem->Remove(fileName);
+			machine->IncrementPC();
+			break;
+		}
+		case SC_Ls:{
+			system("ls");
+			machine->IncrementPC();
+			break;
+		}
+		case SC_Pwd:{
+			system("pwd");
+			machine->IncrementPC();
+			break;
+		}
+		case SC_Cd:{
+			int address = machine->ReadRegister(4);
+			int value;
+			int count = 0;
+			do{
+				machine->ReadMem(address++,1,&value);
+				count++;
+			}while(value != 0);
+			address = address - count;
+			char fileName[count];
+			for(int i = 0; i < count; i++){
+				machine->ReadMem(address+i,1,&value);
+				fileName[i] = (char)value;
+			}
+			chdir(fileName);
+			machine->IncrementPC();
+			break;
+		}
+		case SC_Help:{
+			printf(" x     [path] execute the file specified\n");
+			printf(" rmdir [path] remove the dir specified by path\n ");
+			printf(" mkdir [path] create the dir specified by path\n ");
+			printf(" rm    [path] remove the file specified by path\n ");
+			printf(" ls    list all the file in the current dir\n");
+			printf(" pwd   present working directory\n");
+			printf(" help\n");
 			machine->IncrementPC();
 			break;
 		}
